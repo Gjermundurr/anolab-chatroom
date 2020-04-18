@@ -1,0 +1,16 @@
+TODO:
+- implementer kryptert kommunikasjon
+- sett opp 'online clients' widget
+- Fix text-layout
+- sanitering av input
+- try/except håndtering
+
+
+TODO: Extra:
+- DM funksjon: åpne Toplevel chat for DM kommunikasjons muligheter.
+- Modify ClienSock.Send to include if/elif head:dm/head:bcast
+
+
+## Notes:
+- burde sette client_connect til GUI login button.
+- Add 'Server disconnected, lost connection to server'

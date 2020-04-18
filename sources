@@ -1,0 +1,27 @@
+# socket programming with AES encryption
+https://medium.com/@md.julfikar.mahmud/secure-socket-programming-in-python-d37b93233c69
+
+# python 'select' module info
+https://pymotw.com/2/select/
+
+# python tutorial:
+https://pythonprogramming.net/client-chatroom-sockets-tutorial-python-3/
+
+# tkinter layout tutorial:
+https://www.delftstack.com/tutorial/tkinter-tutorial/tkinter-geometry-managers/
+https://python-textbok.readthedocs.io/en/latest/Introduction_to_GUI_Programming.html
+https://stackoverflow.com/questions/7546050/switch-between-two-frames-in-tkinter
+https://www.javatpoint.com/python-tkinter-listbox
+
+# similar program
+https://codereview.stackexchange.com/questions/214788/socket-chat-room-made-with-tkinter-python
+https://levelup.gitconnected.com/learn-python-by-building-a-multi-user-group-chat-gui-application-af3fa1017689
+https://github.com/Govind9/Non-Blocking-Socket-Chat-Tkinter
+
+
+# Misc
+https://docs.python.org/3/howto/sockets.html
+https://www.reddit.com/r/Python/comments/7459mj/tcp_framing_using_sockets_help/
+
+# SQL docs
+https://dev.mysql.com/doc/connector-python/en/connector-python-api-mysqlcursor-execute.html
