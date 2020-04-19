@@ -9,3 +9,5 @@ password varchar(255),
 email varchar(100),
 PRIMARY KEY(user_id)
 )
+
+insert into Clients (username, password)

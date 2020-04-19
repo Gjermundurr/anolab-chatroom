@@ -1,6 +1,36 @@
-d = {'client_sock':'10.0.0.1', 'client_sock2':'10.002.10', 'client_sock3':'10.20.10.1'}
+from Crypto.Cipher import AES
 
-d['client_sock'] = 'new1'
 
-for thign in d:
-    print(thign)
+
+message = 'This is my super secret message!!!!!'
+
+key = 'this is my test eddddddddddddddd'
+obj = AES.new(key, AES.MODE_ECB)
+
+def pad(s):
+    return s + ((16-len(s) % 16) * '{')
+
+
+def encrypt(plaintext):
+    global obj
+    return obj.encrypt(pad(plaintext).encode('utf-8'))
+
+
+def decrypt(chipertext):
+    global obj
+    dec = chiper.decrypt(chipertext).decode('utf-8')
+    l = dec.count('{')
+    return dec[:len(dec)-1]
+
+print(message)
+encrypted = encrypt(message)
+decrypted = decrypt(encrypted)
+print(encrypted)
+print(decrypted)
+
+
+
+
+
+
+

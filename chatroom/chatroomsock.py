@@ -3,7 +3,8 @@ import threading
 import pickle
 import pymysql
 import bcrypt
-
+from Crypto.Cipher import AES
+import os
 
 class ServerSock:
     """ Modified socket operations for backend server
@@ -12,48 +13,55 @@ class ServerSock:
 
     """
 
-    def __init__(self, sock=None):
-        if sock is None:
-            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        else:
-            self.sock = sock
+    def __init__(self):
+
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.clients = {}
         self.CONN_LIMIT = 5
-        self.ONLINE_TOKEN = {}
+        self.IS_ONLINE = {}
+        self.s = {}
         self.database_sock = pymysql.connect('localhost', 'server-admin', 'password123', 'Chatroom')
 
     def accept_sock(self):
         while True:
             client_sock, client_address = self.sock.accept()
             self.clients[client_sock] = client_address
+            print('connected: ', client_address)
             threading.Thread(target=self.handle, args=(client_sock,), daemon=True).start()
 
     def handle(self, sock):
+        # Filters the header of each recieved message and runs the
         while True:
             raw_data = sock.recv(1024)
             data = pickle.loads(raw_data)
             while True:
                 if not data:
                     break
-                if data['head'] == 'login':
+
+                elif data['head'] == 'login':
                     self.authenticate_client(sock, data)
-                    break
-                # elif data['head'] == 'DM':
-                    # something
-                elif self.ONLINE_TOKEN[sock]:
-                    self.verified(sock, data)
-                    break
 
-                del self.clients[sock]
-                self.ONLINE_TOKEN[sock] = False
-                break
+                elif data['head'] == 'bcast':
+                    self.broadcast(sock, data)
 
-    def verified(self, sock, data):
-        if self.ONLINE_TOKEN[sock]:
+                elif data['head'] == 'dm':
+                    pass
+            print('Client disconnected: ', self.clients[sock])            
+            del self.clients[sock]
+            self.IS_ONLINE[sock] = False
+            break
+
+    def broadcast(self, sock, data):
+        # Additional security token: if user is has not been authorized, token will be False.
+        if self.IS_ONLINE[sock]:
             msg = pickle.dumps(data)
             for clients in self.clients:
                 if clients != sock:
                     clients.sendall(msg)
+
+    def direct_message(self, source_sock, destination_sock, data):
+        pass
+
 
     def authenticate_client(self, sock, data):
         auth_username = data['body'][0]
@@ -66,7 +74,8 @@ class ServerSock:
         retrieve = cursor.fetchone()
         try:
             if retrieve[0] == auth_username and retrieve[1] == auth_password:
-                self.ONLINE_TOKEN[sock] = True
+                self.IS_ONLINE[sock] = True
+                self.clients[sock] = auth_username
                 sock.sendall(bytes('authorized', 'utf-8'))
         except TypeError:
             sock.close()
@@ -76,6 +85,7 @@ class ServerSock:
         """
         self.sock.bind((HOST, PORT))
         self.sock.listen(self.CONN_LIMIT)
+        print('Server listening ...')
         while True:
             self.accept_sock()
 
@@ -126,3 +136,29 @@ class ClientSock:
         raw_data = {'head':'broadcast', 'body': message}
         data = pickle.dumps(raw_data)
         self.sock.sendall(data)
+
+
+class AESCipher:
+
+    def __init__(self):
+        self.key = os.urandom(32)      # AES key
+        self.counter = os.urandom(16)  # CTR counter string with length of 16 bytes
+        self.enc = AES.new(self.key, AES.MODE_CTR)
+        
+    def encrypt(self, raw):
+        return self.enc.encrypt(raw)
+              
+    def decrypt(self, raw,):
+        return self.decrypt(raw)
+
+
+
+
+cipher = AESCipher()
+msg = 'this is clear text.'
+
+crypt_msg = cipher.encrypt(msg)
+print(crypt_msg)
+clear = cipher.decrypt(crypt_msg)
+
+print(clear)
