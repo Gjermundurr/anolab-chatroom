@@ -2,9 +2,12 @@ import socket
 import threading
 import pickle
 import pymysql
-import bcrypt
+import bcrypt # remove?
+from base64 import b64encode, b64decode
 from Crypto.Cipher import AES
-import os
+from Crypto.Util.Padding import pad, unpad
+# from Crypto.Random import get_random_bytes
+
 
 class ServerSock:
     """ Modified socket operations for backend server
@@ -30,38 +33,35 @@ class ServerSock:
             threading.Thread(target=self.handle, args=(client_sock,), daemon=True).start()
 
     def handle(self, sock):
-        # Filters the header of each recieved message and runs the
-        while True:
-            raw_data = sock.recv(1024)
-            data = pickle.loads(raw_data)
+        # Filters the header of each received message and runs the
+        try:
             while True:
-                if not data:
+                raw_data = sock.recv(1024)
+                if not raw_data:
                     break
+                data = do_decrypt(raw_data)
+                while True:
+                    if data['head'] == 'login':
+                        self.authenticate_client(sock, data)
 
-                elif data['head'] == 'login':
-                    self.authenticate_client(sock, data)
+                    elif data['head'] == 'bcast':
+                        if self.IS_ONLINE[sock]:
+                            for clients in self.clients:
+                                if clients != sock:
+                                    clients.sendall(raw_data)
 
-                elif data['head'] == 'bcast':
-                    self.broadcast(sock, data)
-
-                elif data['head'] == 'dm':
-                    pass
-            print('Client disconnected: ', self.clients[sock])            
+                    # elif data['head']['dm']:
+                    #     pass
+                    break
+        except ConnectionResetError:
+            print('Client disconnected: ', self.clients[sock])
             del self.clients[sock]
             self.IS_ONLINE[sock] = False
-            break
-
-    def broadcast(self, sock, data):
-        # Additional security token: if user is has not been authorized, token will be False.
-        if self.IS_ONLINE[sock]:
-            msg = pickle.dumps(data)
-            for clients in self.clients:
-                if clients != sock:
-                    clients.sendall(msg)
-
-    def direct_message(self, source_sock, destination_sock, data):
-        pass
-
+        # except ConnectionAbortedError:
+        # except EOFError:
+        #     pass
+        # except KeyError:
+        # If is_online == False, shit goes down
 
     def authenticate_client(self, sock, data):
         auth_username = data['body'][0]
@@ -76,9 +76,11 @@ class ServerSock:
             if retrieve[0] == auth_username and retrieve[1] == auth_password:
                 self.IS_ONLINE[sock] = True
                 self.clients[sock] = auth_username
-                sock.sendall(bytes('authorized', 'utf-8'))
+                sock.sendall(do_encrypt({'head': 'login', 'body': True}))
+            else:
+                sock.sendall(do_encrypt({'head': 'login', 'body': False}))
         except TypeError:
-            sock.close()
+            sock.sendall(do_encrypt({'head': 'login', 'body': False}))
 
     def run(self, HOST, PORT):
         """ Executes the socket and starts listening and accepting connections, craetiong a new thread for each client
@@ -94,6 +96,7 @@ class ClientSock:
     """ Client socket operations
 
     """
+
     def __init__(self, sock=None):
         if sock is None:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -116,49 +119,55 @@ class ClientSock:
         salt = '$2b$12$5j4Ce8SPnwfM9FIOtV99C.'
         hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt.encode('utf-8'))
         credentials = {'head': 'login', 'body': (username, hashed_password)}
-        data = pickle.dumps(credentials)
-        self.sock.sendall(data)
-
+        enc = do_encrypt(credentials)
+        self.sock.sendall(enc)
         data = self.sock.recv(1024)
-        if data.decode('utf-8') == 'authorized':
+        result = do_decrypt(data)
+        if result['body']:
             return True
         else:
-            self.sock.close()
+            return False
 
     def handle(self):
         """ threaded: will loop for broadcasted messages """
         raw_data = self.sock.recv(1024)
-        data = pickle.loads(raw_data)
+        data = do_decrypt(raw_data)
         return data['body']
+
+        # Implement DM if/elif HERE ------
 
     def send(self, message):
         """ """
-        raw_data = {'head':'broadcast', 'body': message}
-        data = pickle.dumps(raw_data)
+        raw_data = {'head': 'bcast', 'body': message}
+        data = do_encrypt(raw_data)
         self.sock.sendall(data)
 
 
-class AESCipher:
-
-    def __init__(self):
-        self.key = os.urandom(32)      # AES key
-        self.counter = os.urandom(16)  # CTR counter string with length of 16 bytes
-        self.enc = AES.new(self.key, AES.MODE_CTR)
-        
-    def encrypt(self, raw):
-        return self.enc.encrypt(raw)
-              
-    def decrypt(self, raw,):
-        return self.decrypt(raw)
+key = b'\xd94\xe1\x9c\xaa0\xe3:\xa8\x03y\x8a\x12\xd4*!'
 
 
+def do_encrypt(plaintext):
+    global key
+    data = bytes(str(plaintext), 'utf-8')
+    cipher = AES.new(key, AES.MODE_CBC)
+    ct_bytes = cipher.encrypt(pad(data, AES.block_size))
+    iv = b64encode(cipher.iv).decode('utf-8')
+    ct = b64encode(ct_bytes).decode('utf-8')
+    result = pickle.dumps({'iv': iv, 'ciphertext': ct})
+    return result
 
 
-cipher = AESCipher()
-msg = 'this is clear text.'
+def do_decrypt(ciphertext):
+    global key
+    try:
+        b64 = pickle.loads(ciphertext)
+        iv = b64decode(b64['iv'])
+        ct = b64decode(b64['ciphertext'])
+        cipher = AES.new(key, AES.MODE_CBC, iv)
+        pt = unpad(cipher.decrypt(ct), AES.block_size)
+        return eval(pt)
 
-crypt_msg = cipher.encrypt(msg)
-print(crypt_msg)
-clear = cipher.decrypt(crypt_msg)
-
-print(clear)
+    except ValueError:
+        print('ValueError: Incorrect decryption!')
+    except KeyError:
+        print('keyError: Incorrect decryption!')

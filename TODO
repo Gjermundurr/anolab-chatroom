@@ -3,14 +3,14 @@ TODO:
 - sett opp 'online clients' widget
 - Fix text-layout
 - sanitering av input
-- try/except håndtering
+- set local client_name var when MainWindow executes
 
 
 TODO: Extra:
 - DM funksjon: åpne Toplevel chat for DM kommunikasjons muligheter.
-- Modify ClienSock.Send to include if/elif head:dm/head:bcast
 
 
 ## Notes:
 - burde sette client_connect til GUI login button.
 - Add 'Server disconnected, lost connection to server'
+- trenger jeg bcrypt når jeg har Crypto?

@@ -1,6 +1,7 @@
 import tkinter as tk
 from chatroom.chatroomsock import ClientSock
 import threading
+from tkinter import messagebox
 
 
 class Controller(tk.Tk):
@@ -11,6 +12,8 @@ class Controller(tk.Tk):
         self._frame = None
         self.geometry('600x350')
         self.switch_frame(LoginWindow)
+        self.protocol('WM_DELETE_WINDOW', self.on_closing)
+        self._user = None
 
     def switch_frame(self, frame_class):
         new_frame = frame_class(self)
@@ -18,6 +21,11 @@ class Controller(tk.Tk):
             self._frame.destroy()
         self._frame = new_frame
         self._frame.pack()
+
+    def on_closing(self):
+        if messagebox.askokcancel('Exit', 'Exit program?'):
+            client_sock.close()
+            root.destroy()
 
 
 class LoginWindow(tk.Frame):
@@ -28,7 +36,7 @@ class LoginWindow(tk.Frame):
     """
     def __init__(self, master):
         tk.Frame.__init__(self, master)
-        master.title('Test: GUI client login')
+        master.title('test-client1: GUI client login')
 
         # Construction and Configuration of all elements
         self.logo_frame = tk.Frame(self, height='100', width='200', bg='black')
@@ -58,6 +66,9 @@ class LoginWindow(tk.Frame):
         value = client_sock.auth_credentials(username, password)
         if value:
             root.switch_frame(MainWindow)
+            root._user = username
+        else:
+            client_sock.close()
 
 
 class MainWindow(tk.Frame):
@@ -65,8 +76,8 @@ class MainWindow(tk.Frame):
     """
     def __init__(self, master):
         tk.Frame.__init__(self, master)
-        master.title('Test: Client App User 2')
-        threading.Thread(target=self.broadcast, args=()).start()
+        master.title('Test-client1: Client App User 1')
+        threading.Thread(target=self.broadcast, args=(), daemon=True).start()
 
         # Construction and Configuration of all elements
         self.first_frame = tk.Frame(self)
@@ -76,7 +87,7 @@ class MainWindow(tk.Frame):
         self.second_frame = tk.Frame(self)
         self.msg_field = tk.Text(self.second_frame, height=1, width=55)
         self.msg_button = tk.Button(self.second_frame, text='Enter',
-                                    command=self.get_msg)
+                                    command=self.get_message)
 
         # Placements of all elements relative to each other
         self.first_frame.pack(pady=5, ipadx=4)
@@ -86,23 +97,23 @@ class MainWindow(tk.Frame):
         self.msg_field.pack(side='left')
         self.msg_button.pack(side='left', padx=10)
 
-    def get_msg(self):
-        """ Retreive chatbox and send to socket """
+    def get_message(self):
+        """ Get input from text widget and send to backend server """
 
         self.display_chat.config(state='normal')
-        message = self.msg_field.get('1.0', 'end-1c')
-        self.display_chat.insert('end', message + '\n')
+        get = self.msg_field.get('1.0', 'end-1c')
+        self.display_chat.insert('end', f'{root._user}: {get} \n')
         self.msg_field.delete('1.0', 'end')
         self.display_chat.config(state='disabled')
+        message = {root._user: get}
         client_sock.send(message)
-        print(message)
 
     def broadcast(self):
         while True:
             message = client_sock.handle()
-            print(message)
             self.display_chat.config(state='normal')
-            self.display_chat.insert('end', message + '\n')
+            for k, v in message.items():
+                self.display_chat.insert('end', f'{k}: {v} \n')
             self.display_chat.config(state='disabled')
 
 
@@ -110,4 +121,3 @@ if __name__ == '__main__':
     root = Controller()
     client_sock = ClientSock()
     root.mainloop()
-
