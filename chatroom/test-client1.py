@@ -1,5 +1,5 @@
 import tkinter as tk
-from chatroomsock import ClientSock
+from chatroom.chatroomsock import ClientSock
 import threading
 
 

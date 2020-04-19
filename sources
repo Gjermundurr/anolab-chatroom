@@ -30,5 +30,9 @@ https://dev.mysql.com/doc/connector-python/en/connector-python-api-mysqlcursor-e
 https://csrc.nist.gov/publications/detail/sp/800-38a/final
 https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-57p1r3.pdf
 
-# AES guide blog
+# AES guide blog - symmetric encryption
 https://nitratine.net/blog/post/python-encryption-and-decryption-with-pycryptodome/
+https://info.townsendsecurity.com/definitive-guide-to-encryption-key-management-fundamentals
+
+# AES encryption/decryption
+https://pycryptodome.readthedocs.io/en/latest/src/cipher/classic.html#cbc-mode

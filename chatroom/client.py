@@ -2,6 +2,7 @@ import tkinter as tk
 from chatroom.chatroomsock import ClientSock
 import threading
 from tkinter import messagebox
+from PIL import ImageTk, Image
 
 
 class Controller(tk.Tk):
@@ -14,6 +15,7 @@ class Controller(tk.Tk):
         self.switch_frame(LoginWindow)
         self.protocol('WM_DELETE_WINDOW', self.on_closing)
         self._user = None
+        self.configure(bg='darkgrey')
 
     def switch_frame(self, frame_class):
         new_frame = frame_class(self)
@@ -39,18 +41,21 @@ class LoginWindow(tk.Frame):
         master.title('Master: GUI client login')
 
         # Construction and Configuration of all elements
-        self.logo_frame = tk.Frame(self, height='100', width='200', bg='black')
-        self.user_frame = tk.Frame(self)
-        self.username_label = tk.Label(self.user_frame, text='Username:')
-        self.password_label = tk.Label(self.user_frame, text='Password:')
+        self.logo_frame = tk.Frame(self, height='100', width='320')
+        self.banner = ImageTk.PhotoImage(Image.open(r'../img/xyz_banner.png'))
+        self.logo_label = tk.Label(self.logo_frame, image=self.banner)
+        self.user_frame = tk.Frame(self, bg='red')
+        self.username_label = tk.Label(self.user_frame, text='Username:', font=' montserrat 13 bold')
+        self.password_label = tk.Label(self.user_frame, text='Password:', font=' montserrat 13 bold')
         self.entry_frame = tk.Frame(self)
         self.username_entry = tk.Entry(self.entry_frame)
         self.password_entry = tk.Entry(self.entry_frame, show='*')
-        self.login_button = tk.Button(self.entry_frame, text='Login',
+        self.login_button = tk.Button(self.entry_frame, text='Login', font=' montserrat 10 bold',
                                       command=self.login)
 
         # Placements of all elements relative to each other
         self.logo_frame.pack(pady=10, ipady=20)
+        self.logo_label.pack()
         self.user_frame.pack(pady=10, ipady=20)
         self.username_label.pack(side='left', ipadx=25)
         self.password_label.pack(side='left', padx=25)

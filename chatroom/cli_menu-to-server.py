@@ -40,5 +40,5 @@ def menu():
 
 
 if __name__ == '__main__':
-    db_sock = pymysql.connect('localhost', 'server-admin', 'password123', 'Chatroom')
+    db_sock = pymysql.connect('database-1.cpv50obye5su.eu-central-1.rds.amazonaws.com', 'admin', 'password123', 'Chatroom')
     menu()

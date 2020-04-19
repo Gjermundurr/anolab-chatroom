@@ -22,7 +22,6 @@ class ServerSock:
         self.clients = {}
         self.CONN_LIMIT = 5
         self.IS_ONLINE = {}
-        self.s = {}
         self.database_sock = pymysql.connect('localhost', 'server-admin', 'password123', 'Chatroom')
 
     def accept_sock(self):
@@ -131,6 +130,7 @@ class ClientSock:
     def handle(self):
         """ threaded: will loop for broadcasted messages """
         raw_data = self.sock.recv(1024)
+        print(raw_data)
         data = do_decrypt(raw_data)
         return data['body']
 

@@ -1,16 +1,15 @@
 TODO:
-- implementer kryptert kommunikasjon
 - sett opp 'online clients' widget
 - Fix text-layout
 - sanitering av input
-- set local client_name var when MainWindow executes
+- update database table: fullname + surname. use full names for dislpay names.
 
 
 TODO: Extra:
 - DM funksjon: åpne Toplevel chat for DM kommunikasjons muligheter.
+- create server output logg file.
 
 
 ## Notes:
-- burde sette client_connect til GUI login button.
 - Add 'Server disconnected, lost connection to server'
 - trenger jeg bcrypt når jeg har Crypto?
