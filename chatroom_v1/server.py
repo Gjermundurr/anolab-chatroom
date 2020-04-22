@@ -1,4 +1,4 @@
-from chatroom.chatroomsock import ServerSock
+from chatroom_v1.chatroomsock import ServerSock
 HOST = '127.0.0.1'
 PORT = 60000
 

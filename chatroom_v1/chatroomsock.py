@@ -19,10 +19,10 @@ class ServerSock:
     def __init__(self):
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.clients = {}
         self.CONN_LIMIT = 5
-        self.IS_ONLINE = {}
-        self.database_sock = pymysql.connect('localhost', 'server-admin', 'password123', 'Chatroom')
+        self.clients = {}       # sock: username
+        self.IS_ONLINE = {}     # sock: bool
+        self.database_sock = pymysql.connect('localhost', 'server-admin', 'password123', 'chatroom_v1')
 
     def accept_sock(self):
         while True:
@@ -30,6 +30,25 @@ class ServerSock:
             self.clients[client_sock] = client_address
             print('connected: ', client_address)
             threading.Thread(target=self.handle, args=(client_sock,), daemon=True).start()
+
+    def authenticate_client(self, sock, data):
+        auth_username = data['body'][0]
+        auth_password = data['body'][1].decode('utf-8')
+
+        cursor = self.database_sock.cursor()
+        query = "SELECT username, password FROM users where username=%s"
+        values = (auth_username,)
+        cursor.execute(query, values)
+        retrieve = cursor.fetchone()
+        try:
+            if retrieve[0] == auth_username and retrieve[1] == auth_password:
+                self.IS_ONLINE[sock] = True
+                self.clients[sock] = auth_username
+                sock.sendall(do_encrypt({'head': 'login', 'body': True}))
+            else:
+                sock.sendall(do_encrypt({'head': 'login', 'body': False}))
+        except TypeError:
+            sock.sendall(do_encrypt({'head': 'login', 'body': False}))
 
     def handle(self, sock):
         # Filters the header of each received message and runs the
@@ -61,25 +80,6 @@ class ServerSock:
         #     pass
         # except KeyError:
         # If is_online == False, shit goes down
-
-    def authenticate_client(self, sock, data):
-        auth_username = data['body'][0]
-        auth_password = data['body'][1].decode('utf-8')
-
-        cursor = self.database_sock.cursor()
-        query = "SELECT username, password FROM clients where username=%s"
-        values = (auth_username,)
-        cursor.execute(query, values)
-        retrieve = cursor.fetchone()
-        try:
-            if retrieve[0] == auth_username and retrieve[1] == auth_password:
-                self.IS_ONLINE[sock] = True
-                self.clients[sock] = auth_username
-                sock.sendall(do_encrypt({'head': 'login', 'body': True}))
-            else:
-                sock.sendall(do_encrypt({'head': 'login', 'body': False}))
-        except TypeError:
-            sock.sendall(do_encrypt({'head': 'login', 'body': False}))
 
     def run(self, HOST, PORT):
         """ Executes the socket and starts listening and accepting connections, craetiong a new thread for each client
@@ -130,7 +130,6 @@ class ClientSock:
     def handle(self):
         """ threaded: will loop for broadcasted messages """
         raw_data = self.sock.recv(1024)
-        print(raw_data)
         data = do_decrypt(raw_data)
         return data['body']
 

@@ -2,8 +2,8 @@ TODO:
 - sett opp 'online clients' widget
 - Fix text-layout
 - sanitering av input
-- update database table: fullname + surname. use full names for dislpay names.
-
+- client login: no connected: dispaly msgbox "srv is down, please try again later!"
+- add timestaps in chat
 
 TODO: Extra:
 - DM funksjon: åpne Toplevel chat for DM kommunikasjons muligheter.

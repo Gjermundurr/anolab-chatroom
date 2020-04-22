@@ -1,5 +1,5 @@
 import tkinter as tk
-from chatroom_v2.clientsock import ClientSock
+from clientsock import ClientSock
 import threading
 from tkinter import messagebox
 from PIL import ImageTk, Image
@@ -47,7 +47,7 @@ class LoginWindow(tk.Frame):
         self.middle_frame = tk.Frame(self, bg='grey', height=150, width=400)
         self.info = tk.Label(self.middle_frame, bg='grey', font='times 11', text="""Welcome to Company XYZ's personal encrypted messaging service,
         Do not share this application without permission!
-
+        
         Please enter below your username and password sent to you by email.
         """)
         self.username_label = tk.Label(self.middle_frame, text='Username:', font='fixedsys 13', bg='grey',
@@ -73,15 +73,18 @@ class LoginWindow(tk.Frame):
         self.login_button.pack(side='left')
 
     def login(self):
+        client_sock.connect()
         username = self.username_entry.get()
         password = self.password_entry.get()
-        retrieve = client_sock.login(username, password)
+        retrieve = ClientSock.login(username, password)
 
         if retrieve['body']:
             root.switch_frame(MainWindow)
             root._user = username
+
         else:
             messagebox.showwarning('Warning', 'Incorrect username/password!')
+            client_sock.close()
 
 
 class MainWindow(tk.Frame):
@@ -92,7 +95,7 @@ class MainWindow(tk.Frame):
         tk.Frame.__init__(self, master)
         master.title('XYZ Messenger - Chat room')
         master.protocol('WM_DELETE_WINDOW', self.on_closing)
-        threading.Thread(target=self.handler, args=(), daemon=True).start()
+        threading.Thread(target=self.broadcast, args=(), daemon=True).start()
 
         # Top frame containing a right/left frame with the chat window and online users display
         self.top_frame = tk.Frame(self, bg='grey')
@@ -125,19 +128,6 @@ class MainWindow(tk.Frame):
         self.msg_field.pack(side='left', fill='x', expand=1)
         self.msg_btn.pack(padx=10, ipadx=20)
 
-    def handler(self):
-        while True:
-            data = client_sock.receiver()
-            if data['head'] == 'bcast':
-                message = data['body']
-                self.chat.config(state='normal')
-                for k, v in message.items():
-                    self.chat.insert('end', f'{k}: {v}' + '\n')
-                self.chat.config(state='disabled')
-
-            elif data['head'] == 'dm':
-                pass
-
     def get_message(self):
         """ Get input from text widget and send to backend server """
 
@@ -148,7 +138,15 @@ class MainWindow(tk.Frame):
             self.chat.config(state='disabled')
             self.msg_field.delete('1.0', 'end')
             message = {root._user: get}
-            client_sock.send_bcast(message)
+            client_sock.send(message)
+
+    def broadcast(self):
+        while True:
+            message = client_sock.handle()
+            self.chat.config(state='normal')
+            for k, v in message.items():
+                self.chat.insert('end', f'{k}: {v}' + '\n')
+            self.chat.config(state='disabled')
 
     def on_closing(self):
         if messagebox.askokcancel('Exit', 'Exit program?'):
