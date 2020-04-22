@@ -8,26 +8,21 @@ from PIL import ImageTk, Image
 class Controller(tk.Tk):
     """ Constructor for GUI application
     """
+
     def __init__(self):
         tk.Tk.__init__(self)
         self._frame = None
         self.geometry('600x350')
         self.switch_frame(LoginWindow)
-        self.protocol('WM_DELETE_WINDOW', self.on_closing)
         self._user = None
-        self.configure(bg='darkgrey')
+        self.configure(bg='grey')
 
     def switch_frame(self, frame_class):
         new_frame = frame_class(self)
         if self._frame is not None:
             self._frame.destroy()
         self._frame = new_frame
-        self._frame.pack()
-
-    def on_closing(self):
-        if messagebox.askokcancel('Exit', 'Exit program?'):
-            client_sock.close()
-            root.destroy()
+        self._frame.pack(fill='both', expand=1)
 
 
 class LoginWindow(tk.Frame):
@@ -36,33 +31,46 @@ class LoginWindow(tk.Frame):
     require user to enter valid authentication
 
     """
+
     def __init__(self, master):
         tk.Frame.__init__(self, master)
-        master.title('Master: GUI client login')
+        master.title('XYZ Messenger: Login')
+        master.protocol('WM_DELETE_WINDOW', lambda: root.destroy())
+        self.configure(bg='grey')
 
-        # Construction and Configuration of all elements
-        self.logo_frame = tk.Frame(self, height='100', width='320')
-        self.banner = ImageTk.PhotoImage(Image.open(r'../img/xyz_banner.png'))
-        self.logo_label = tk.Label(self.logo_frame, image=self.banner)
-        self.user_frame = tk.Frame(self, bg='red')
-        self.username_label = tk.Label(self.user_frame, text='Username:', font=' montserrat 13 bold')
-        self.password_label = tk.Label(self.user_frame, text='Password:', font=' montserrat 13 bold')
-        self.entry_frame = tk.Frame(self)
-        self.username_entry = tk.Entry(self.entry_frame)
-        self.password_entry = tk.Entry(self.entry_frame, show='*')
-        self.login_button = tk.Button(self.entry_frame, text='Login', font=' montserrat 10 bold',
-                                      command=self.login)
+        self.top_frame = tk.Frame(self)
+        self.img = Image.open('../img/xyz_banner.png')
+        self.img100x320 = self.img.resize((370, 120), Image.ANTIALIAS)
+        self.banner = ImageTk.PhotoImage(self.img100x320)
+        self.logo_label = tk.Label(self.top_frame, height=150, width=400, image=self.banner, bg='grey')
 
-        # Placements of all elements relative to each other
-        self.logo_frame.pack(pady=10, ipady=20)
+        self.middle_frame = tk.Frame(self, bg='grey', height=150, width=400)
+        self.info = tk.Label(self.middle_frame, bg='grey', font='times 11', text="""Welcome to Company XYZ's personal encrypted messaging service,
+        Do not share this application without permission!
+        
+        Please enter below your username and password sent to you by email.
+        """)
+        self.username_label = tk.Label(self.middle_frame, text='Username:', font='fixedsys 13', bg='grey',
+                                       fg='white')
+        self.password_label = tk.Label(self.middle_frame, text='Password:', font='fixedsys 13', bg='grey',
+                                       fg='white')
+
+        self.btm_frame = tk.Frame(self, height=150, width=400, bg='grey')
+        self.username_entry = tk.Entry(self.btm_frame, font='fixedsys 10')
+        self.password_entry = tk.Entry(self.btm_frame, show='*')
+        self.login_button = tk.Button(self.btm_frame, text='Login', font='fixedsys 10', command=self.login)
+
+        # widget placement
+        self.top_frame.pack()
         self.logo_label.pack()
-        self.user_frame.pack(pady=10, ipady=20)
-        self.username_label.pack(side='left', ipadx=25)
-        self.password_label.pack(side='left', padx=25)
-        self.entry_frame.pack()
-        self.username_entry.pack(side='left', ipadx=5)
-        self.password_entry.pack(side='left', padx=5)
-        self.login_button.pack(side='left', ipadx=5)
+        self.middle_frame.pack()
+        self.info.pack(ipady=10)
+        self.username_label.pack(side='left', padx=60)
+        self.password_label.pack(side='left', padx=40)
+        self.btm_frame.pack()
+        self.username_entry.pack(side='left', padx=10)
+        self.password_entry.pack(side='left', padx=10)
+        self.login_button.pack(side='left')
 
     def login(self):
         client_sock.connect()
@@ -71,7 +79,8 @@ class LoginWindow(tk.Frame):
         value = client_sock.auth_credentials(username, password)
         if value:
             root.switch_frame(MainWindow)
-            root._user = username
+            # root._user = username
+            root._user = 'jerry'
         else:
             client_sock.close()
 
@@ -79,47 +88,68 @@ class LoginWindow(tk.Frame):
 class MainWindow(tk.Frame):
     """ Main window of client application
     """
+
     def __init__(self, master):
         tk.Frame.__init__(self, master)
-        master.title('Master: Client App User 1')
+        # master.resizable(width=True, height=True)
+        master.title('XYZ Messenger - Chat room')
+        master.protocol('WM_DELETE_WINDOW', self.on_closing)
         threading.Thread(target=self.broadcast, args=(), daemon=True).start()
 
-        # Construction and Configuration of all elements
-        self.first_frame = tk.Frame(self)
-        self.display_chat = tk.Text(self.first_frame, height=15, width=55,
-                                    state='disabled')
-        self.display_users = tk.Listbox(self.first_frame)
-        self.second_frame = tk.Frame(self)
-        self.msg_field = tk.Text(self.second_frame, height=1, width=55)
-        self.msg_button = tk.Button(self.second_frame, text='Enter',
-                                    command=self.get_message)
+        # Top frame containing a right/left frame with the chat window and online users display
+        self.top_frame = tk.Frame(self)
+        self.left_frame = tk.Frame(self.top_frame)
+        self.chat = tk.Text(self.left_frame, width=10, height=1, state='disabled')
+        self.chat_scroll = tk.Scrollbar(self.left_frame, command=self.chat.yview)
+        self.chat['yscrollcommand'] = self.chat_scroll.set
 
-        # Placements of all elements relative to each other
-        self.first_frame.pack(pady=5, ipadx=4)
-        self.display_chat.pack(side='left')
-        self.display_users.pack(anchor='e')
-        self.second_frame.pack(anchor='w')
-        self.msg_field.pack(side='left')
-        self.msg_button.pack(side='left', padx=10)
+        self.right_frame = tk.Frame(self.top_frame)
+        self.users_online = tk.Listbox(self.right_frame)
+        self.users_scroll = tk.Scrollbar(self.right_frame, command=self.users_online.yview)
+        self.users_online['yscrollcommand'] = self.users_scroll.set
+
+        self.msg_frame = tk.Frame(self, height=50, padx=5, pady=5)
+        self.msg_text = tk.Text(self.msg_frame, height=2, width=10)
+        self.msg_btn = tk.Button(self.msg_frame, text='Send', height=2, font='fixedsys 10', command=self.get_message)
+        self.msg_btn.bind('<Return>', self.get_message)
+
+        # Tkinter widget placements
+        self.top_frame.pack(side='top', expand=1, fill='both')
+        self.left_frame.pack(side='left', expand=1, fill='both', padx=5, pady=5)
+        self.chat.pack(side='left', expand=1, fill='both')
+        self.chat_scroll.pack(side='right', fill='y')
+
+        self.right_frame.pack(side='right', anchor='ne', padx=5, pady=5)
+        self.users_online.pack(side='left')
+        self.users_scroll.pack(side='right', fill='y')
+
+        self.msg_frame.pack(anchor='sw', side='bottom', fill='x')
+        self.msg_text.pack(side='left', fill='x', expand=1)
+        self.msg_btn.pack(padx=10, ipadx=20)
 
     def get_message(self):
         """ Get input from text widget and send to backend server """
 
-        self.display_chat.config(state='normal')
-        get = self.msg_field.get('1.0', 'end-1c')
-        self.display_chat.insert('end', f'{root._user}: {get} \n')
-        self.msg_field.delete('1.0', 'end')
-        self.display_chat.config(state='disabled')
+        self.chat.config(state='normal')
+        get = self.msg_text.get('1.0', 'end-1c')
+        self.chat.insert('end', '\n', f'You: {get}')
+        self.msg_text.delete('1.0', 'end')
+        self.chat.config(state='disabled')
         message = {root._user: get}
         client_sock.send(message)
 
     def broadcast(self):
         while True:
             message = client_sock.handle()
-            self.display_chat.config(state='normal')
+            self.chat.config(state='normal')
             for k, v in message.items():
-                self.display_chat.insert('end', f'{k}: {v} \n')
-            self.display_chat.config(state='disabled')
+                self.chat.insert('end', '\n', f'{k}: {v}')
+            self.chat.config(state='disabled')
+
+    def on_closing(self):
+        if messagebox.askokcancel('Exit', 'Exit program?'):
+            client_sock.close()
+            root.destroy()
 
 
 if __name__ == '__main__':
