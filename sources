@@ -36,3 +36,6 @@ https://info.townsendsecurity.com/definitive-guide-to-encryption-key-management-
 
 # AES encryption/decryption
 https://pycryptodome.readthedocs.io/en/latest/src/cipher/classic.html#cbc-mode
+
+# unpacking nested dict
+https://stackoverflow.com/questions/58129118/how-to-unpack-dict-with-one-key-value-pair-to-two-variables-more-elegantly

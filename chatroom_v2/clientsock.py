@@ -4,16 +4,14 @@ import bcrypt  # remove?
 from base64 import b64encode, b64decode
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
-
-
 # from Crypto.Random import get_random_bytes
 
 
 class ClientSock:
     DESTINATION_ADDR = ('127.0.0.1', 60000)
 
-    def __init__(self):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # def __init__(self):
+    #     self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def login(self, username, password):
         salt = '$2b$12$5j4Ce8SPnwfM9FIOtV99C.'
@@ -21,6 +19,7 @@ class ClientSock:
         credentials = {'head': 'login', 'body': (username, hashed_password)}
         encrypted_data = do_encrypt(credentials)
 
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect(ClientSock.DESTINATION_ADDR)
         self.sock.sendall(encrypted_data)
         return do_decrypt((self.sock.recv(1024)))

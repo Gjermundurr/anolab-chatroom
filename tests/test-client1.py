@@ -1,3 +1,6 @@
+"""
+Classes for tkinter Graphical User Interface configurations, layout, and GUI operations.
+"""
 import tkinter as tk
 from chatroom_v2.clientsock import ClientSock
 import threading
@@ -79,8 +82,9 @@ class LoginWindow(tk.Frame):
 
         if retrieve['body']:
             root.switch_frame(MainWindow)
-            root._user = username
+            root._user = retrieve['body'][1]
         else:
+            client_sock.close()
             messagebox.showwarning('Warning', 'Incorrect username/password!')
 
 
@@ -90,7 +94,7 @@ class MainWindow(tk.Frame):
 
     def __init__(self, master):
         tk.Frame.__init__(self, master)
-        master.title('XYZ Messenger - Chat room')
+        master.title('test-client1')
         master.protocol('WM_DELETE_WINDOW', self.on_closing)
         threading.Thread(target=self.handler, args=(), daemon=True).start()
 
@@ -125,18 +129,26 @@ class MainWindow(tk.Frame):
         self.msg_field.pack(side='left', fill='x', expand=1)
         self.msg_btn.pack(padx=10, ipadx=20)
 
+        self.test_user = self.users_online.insert(1, 'test-user')
+        self.test_user = self.users_online.insert(2, 'test-user')
+        self.test_user = self.users_online.insert(3, 'test-user')
+
     def handler(self):
         while True:
             data = client_sock.receiver()
+            if not data:
+                break
             if data['head'] == 'bcast':
                 message = data['body']
                 self.chat.config(state='normal')
-                for k, v in message.items():
-                    self.chat.insert('end', f'{k}: {v}' + '\n')
+                self.chat.insert('end', f'{message[0]}:{message[1]}' + '\n')
                 self.chat.config(state='disabled')
 
             elif data['head'] == 'dm':
                 pass
+
+            elif data['head'] == 'meta':
+                print(data)
 
     def get_message(self):
         """ Get input from text widget and send to backend server """
@@ -147,13 +159,54 @@ class MainWindow(tk.Frame):
             self.chat.insert('end', f'You: {get}' + '\n')
             self.chat.config(state='disabled')
             self.msg_field.delete('1.0', 'end')
-            message = {root._user: get}
+            message = (root._user, get)
             client_sock.send_bcast(message)
 
     def on_closing(self):
         if messagebox.askokcancel('Exit', 'Exit program?'):
             client_sock.close()
             root.destroy()
+
+    def popup(self):
+        pass
+
+    def direct_message(self, user):
+        pass
+
+    # def who_online(self, list):
+    #
+    #     def dm_user(user, popup):
+    #         popup.post(event.x_root, event.)
+    #     i = 0
+    #     for user in list:
+    #         userbox = self.users_online.insert(i,user)
+    #         popup = tk.Menu(self, tearoff=0)
+    #         popup.add_command(label='Direct message')
+    #         userbox.bind('<Button-3>', dm_user(popup))
+
+
+class DmWindow(tk.Toplevel):
+    def __init__(self, master):
+        tk.Toplevel.__init__(self, master)
+        self.top_frame = tk.Frame(self, bg='grey', padx=5, pady=5)
+        self.user_label = tk.Label(self.top_frame, text='DM: <User>')
+        self.chat_frame = tk.Frame(self.top_frame)
+        self.chat = tk.Text(self.chat_frame, width=10, height=1, state='disabled')
+        self.chat_scroll = tk.Scrollbar(self.chat_frame, command=self.chat.yview)
+        self.chat['yscrollcommand'] = self.chat_scroll.set
+
+        self.btm_frame = tk.Frame(self)
+        self.msg_field = tk.Text(self.btm_frame)
+        self.msg_btn = tk.Button(self.btm_frame)
+
+        self.top_frame.pack(anchor='sw')
+        self.user_label.pack(side='left')
+        self.chat_frame.pack(anchor='nw', fill='both', expand=1)
+        self.chat.pack(side='left', fill='both', expand=1)
+        self.chat_scroll.pack(side='right', fill='y')
+        self.btm_frame.pack(anchor='sw', fill='x')
+        self.msg_field.pack(side='left', fill='x', expand=1)
+        self.msg_btn.pack(side='left')
 
 
 if __name__ == '__main__':
