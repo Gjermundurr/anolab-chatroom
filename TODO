@@ -1,15 +1,12 @@
 TODO:
-- sett opp 'online clients' widget
-- Fix text-layout
-- sanitering av input
-- client login: no connected: dispaly msgbox "srv is down, please try again later!"
-- add timestaps in chat
+- direct message feature
+- Fix fonts
+- asymmetrisk kryptering
 
-TODO: Extra:
-- DM funksjon: åpne Toplevel chat for DM kommunikasjons muligheter.
-- create server output logg file.
 
+
+
+Extra:
+timestamps in chat
 
 ## Notes:
-- Add 'Server disconnected, lost connection to server'
-- trenger jeg bcrypt når jeg har Crypto?

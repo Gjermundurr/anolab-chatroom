@@ -1,4 +1,4 @@
-from chatroom_v3.operations import AESchiper
+from chatroom_v3.aescipher import AESchiper
 import socket
 import pymysql
 import threading
@@ -85,7 +85,6 @@ class ChatServer:
                         data = {'head': 'meta', 'body': {'online': online}}
                         sock.sendall(cipher.do_encrypt(data))
                 self.is_online_flag.clear()
-
             for sock, state in clients.items():
                 if state['state'] == 0:
                     online = [client['fullname'] for client in clients.values()]
