@@ -1,4 +1,6 @@
+Crypto
+M2Crypto==0.35.2
 PIL
-Pycryptodome
+Pycryptodome==3.9.7
 bcrypt==3.1.7
 PyMySQL==0.9.3

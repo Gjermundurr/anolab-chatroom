@@ -11,7 +11,7 @@ def menu():
         2) ...
         3) ...
 
-        4) Shutdown
+        4) Exit
 
         ''')
         select = input('> ')
@@ -24,9 +24,8 @@ def menu():
             get_username = input('Enter username: ')
             get_password = input('Enter a strong password: ')
 
-            # salt = bcrypt.gensalt()
-            salt = '$2b$12$5j4Ce8SPnwfM9FIOtV99C.'
-            hashed_password = bcrypt.hashpw(get_password.encode('utf-8'), salt.encode('utf-8'))
+            salt = bcrypt.gensalt()
+            hashed_password = bcrypt.hashpw(get_password.encode('utf-8'), salt)
 
             cur = db_sock.cursor()
             query = (
@@ -40,9 +39,9 @@ def menu():
             cur.execute(sel_query, get_email)
             ret = cur.fetchone()
             user_query = (
-                "INSERT INTO users (user_id, username, password) VALUES (%s, %s, %s)"
+                "INSERT INTO users (user_id, username, password, salt) VALUES (%s, %s, %s, %s)"
             )
-            user_data = (ret[0], get_username, hashed_password)
+            user_data = (ret[0], get_username, hashed_password, salt)
             cur.execute(user_query, user_data)
 
             db_sock.commit()
@@ -55,5 +54,5 @@ def menu():
 
 
 if __name__ == '__main__':
-    db_sock = pymysql.connect('localhost', 'server-admin', 'password123', 'chatroom_v1')
+    db_sock = pymysql.connect('localhost', 'server-admin', 'password123', 'chatroom')
     menu()

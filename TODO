@@ -1,12 +1,19 @@
-TODO:
+TODO server:
 - direct message feature
-- Fix fonts
-- asymmetrisk kryptering
+- fix auth func
+- fix handle func
+- fix is_online func
 
+TODO client:
+- sett opp DM feature
+- fix online_users feature
+- GUI design; fonts, timestamps, misc
 
+TODO database:
+- Lag restrikted systembruker for password lookup
+- generer unik salt for hvert passord hash
 
-
-Extra:
-timestamps in chat
 
 ## Notes:
+
+pw hashing: brukt crypto/bcrypto og 

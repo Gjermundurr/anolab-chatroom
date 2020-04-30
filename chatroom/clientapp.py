@@ -1,5 +1,8 @@
+"""
+Classes for tkinter Graphical User Interface configurations, layout, and GUI operations.
+"""
 import tkinter as tk
-from chatroom_v2.clientsock import ClientSock
+from chatroom.clientsock import ClientSock
 import threading
 from tkinter import messagebox
 from PIL import ImageTk, Image
@@ -14,7 +17,7 @@ class Controller(tk.Tk):
         self._frame = None
         self.geometry('600x350')
         self.switch_frame(LoginWindow)
-        self._user = None
+        self.user = None
         self.configure(bg='grey')
 
     def switch_frame(self, frame_class):
@@ -47,7 +50,7 @@ class LoginWindow(tk.Frame):
         self.middle_frame = tk.Frame(self, bg='grey', height=150, width=400)
         self.info = tk.Label(self.middle_frame, bg='grey', font='times 11', text="""Welcome to Company XYZ's personal encrypted messaging service,
         Do not share this application without permission!
-        
+
         Please enter below your username and password sent to you by email.
         """)
         self.username_label = tk.Label(self.middle_frame, text='Username:', font='fixedsys 13', bg='grey',
@@ -76,12 +79,10 @@ class LoginWindow(tk.Frame):
         username = self.username_entry.get()
         password = self.password_entry.get()
         retrieve = client_sock.login(username, password)
-
-        if retrieve['body']:
+        if retrieve['body'][0]:
             root.switch_frame(MainWindow)
-            root._user = retrieve['body'][1]
+            root.user = retrieve['body'][1]
         else:
-            client_sock.close()
             messagebox.showwarning('Warning', 'Incorrect username/password!')
 
 
@@ -94,6 +95,7 @@ class MainWindow(tk.Frame):
         master.title('XYZ Messenger - Chat room')
         master.protocol('WM_DELETE_WINDOW', self.on_closing)
         threading.Thread(target=self.handler, args=(), daemon=True).start()
+        threading.Thread(target=self.is_online, args=(data), daemon=True).start()
 
         # Top frame containing a right/left frame with the chat window and online users display
         self.top_frame = tk.Frame(self, bg='grey')
@@ -104,13 +106,14 @@ class MainWindow(tk.Frame):
 
         self.right_frame = tk.Frame(self.top_frame, bg='grey')
         self.users_online = tk.Listbox(self.right_frame)
+        self.users_index = []
         self.users_scroll = tk.Scrollbar(self.right_frame, command=self.users_online.yview)
         self.users_online['yscrollcommand'] = self.users_scroll.set
 
         self.msg_frame = tk.Frame(self, height=50, padx=5, pady=5, bg='grey')
         self.msg_field = tk.Text(self.msg_frame, height=2, width=10)
-        self.msg_btn = tk.Button(self.msg_frame, text='Send', height=2, font='fixedsys 10', command=self.get_message)
-        self.msg_btn.bind('<Return>', self.get_message)
+        self.msg_btn = tk.Button(self.msg_frame, text='Send', height=2, font='fixedsys 10', command=self.message)
+        self.msg_btn.bind('<Return>', self.message)
 
         # Tkinter widget placements
         self.top_frame.pack(side='top', expand=1, fill='both')
@@ -126,31 +129,7 @@ class MainWindow(tk.Frame):
         self.msg_field.pack(side='left', fill='x', expand=1)
         self.msg_btn.pack(padx=10, ipadx=20)
 
-        self.test_user = self.users_online.insert(1,'test-user')
-        self.test_user = self.users_online.insert(2, 'test-user')
-        self.test_user = self.users_online.insert(3, 'test-user')
-
-    def handler(self):
-        try:
-            while True:
-                data = client_sock.receiver()
-                if data['head'] == 'bcast':
-                    message = data['body']
-                    self.chat.config(state='normal')
-                    self.chat.insert('end', f'{message[0]}:{message[1]}' + '\n')
-                    self.chat.config(state='disabled')
-
-                elif data['head'] == 'dm':
-                    pass
-
-                elif data['head'] == 'meta':
-                    for user in data['body']:
-                        print(data)
-                        # self.users_online.insert(user)
-        except TypeError:
-            pass
-
-    def get_message(self):
+    def message(self):
         """ Get input from text widget and send to backend server """
 
         get = self.msg_field.get('1.0', 'end-1c')
@@ -159,35 +138,47 @@ class MainWindow(tk.Frame):
             self.chat.insert('end', f'You: {get}' + '\n')
             self.chat.config(state='disabled')
             self.msg_field.delete('1.0', 'end')
-            message = (root._user, get)
-            client_sock.send_bcast(message)
+            message = (root.user, get)
+            client_sock.send_msg(message)
+
+    def handler(self):
+        while True:
+            data = client_sock.receiver()
+            if not data:
+                break
+            if data['head'] == 'bcast':
+                message = data['body']
+                self.chat.config(state='normal')
+                self.chat.insert('end', f'{message[0]}: {message[1]}' + '\n')
+                self.chat.config(state='disabled')
+
+            elif data['head'] == 'dm':
+                pass
+
+            elif data['head'] == 'meta':
+                self.is_online(data['body'])
+
+    def is_online(self, meta):
+        ((key, value),) = meta.items()
+        if key == 'online':
+            self.users_index += [user for user in value]
+            for user in value:
+                self.users_online.insert('end', user)
+
+        elif key == 'offline':
+            for user in self.users_index:
+                if value[0] == user:
+                    self.users_online.delete(self.users_index.index(user))
 
     def on_closing(self):
         if messagebox.askokcancel('Exit', 'Exit program?'):
             client_sock.close()
             root.destroy()
 
-    def popup(self):
-        pass
 
-    def direct_message(self, user):
-        pass
-
-    # def who_online(self, list):
-    #
-    #     def dm_user(user, popup):
-    #         popup.post(event.x_root, event.)
-    #     i = 0
-    #     for user in list:
-    #         userbox = self.users_online.insert(i,user)
-    #         popup = tk.Menu(self, tearoff=0)
-    #         popup.add_command(label='Direct message')
-    #         userbox.bind('<Button-3>', dm_user(popup))
-
-
-class DmWindow(tk.Toplevel, MainWindow):
-    def __init__(self):
-        tk.Toplevel.__init__(self)
+class DmWindow(tk.Toplevel):
+    def __init__(self, master):
+        tk.Toplevel.__init__(self, master)
         self.top_frame = tk.Frame(self, bg='grey', padx=5, pady=5)
         self.user_label = tk.Label(self.top_frame, text='DM: <User>')
         self.chat_frame = tk.Frame(self.top_frame)
@@ -210,6 +201,7 @@ class DmWindow(tk.Toplevel, MainWindow):
 
 
 if __name__ == '__main__':
-    root = Controller()
     client_sock = ClientSock()
+    client_sock.start()
+    root = Controller()
     root.mainloop()
