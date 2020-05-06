@@ -2,7 +2,7 @@
 Classes for tkinter Graphical User Interface configurations, layout, and GUI operations.
 """
 import tkinter as tk
-from chatroom_v2.clientsock import ClientSock
+from chatroom.clientsock import ClientSock
 import threading
 from tkinter import messagebox
 from PIL import ImageTk, Image
@@ -17,8 +17,9 @@ class Controller(tk.Tk):
         self._frame = None
         self.geometry('600x350')
         self.switch_frame(LoginWindow)
-        self.user = None
         self.configure(bg='grey')
+        self.user = None
+        self.dm_instance = {}
 
     def switch_frame(self, frame_class):
         new_frame = frame_class(self)
@@ -30,9 +31,7 @@ class Controller(tk.Tk):
 
 class LoginWindow(tk.Frame):
     """ Login window:
-
     require user to enter valid authentication
-
     """
 
     def __init__(self, master):
@@ -62,6 +61,7 @@ class LoginWindow(tk.Frame):
         self.username_entry = tk.Entry(self.btm_frame, font='fixedsys 10')
         self.password_entry = tk.Entry(self.btm_frame, show='*')
         self.login_button = tk.Button(self.btm_frame, text='Login', font='fixedsys 10', command=self.login)
+        self.login_button.bind('<Return>', self.login)
 
         # widget placement
         self.top_frame.pack()
@@ -79,12 +79,10 @@ class LoginWindow(tk.Frame):
         username = self.username_entry.get()
         password = self.password_entry.get()
         retrieve = client_sock.login(username, password)
-
-        if retrieve['body']:
+        if retrieve['body'][0]:
             root.switch_frame(MainWindow)
-            root.user = retrieve['body'][1]
+            root.user = retrieve['body'][1][0]
         else:
-            client_sock.close()
             messagebox.showwarning('Warning', 'Incorrect username/password!')
 
 
@@ -97,7 +95,8 @@ class MainWindow(tk.Frame):
         master.title('XYZ Messenger - Chat room')
         master.protocol('WM_DELETE_WINDOW', self.on_closing)
         threading.Thread(target=self.handler, args=(), daemon=True).start()
-        # threading.Thread(target=self.is_online, args=(data), daemon=True).start()
+        self.online = {}
+        self.menu = PopupMenu()
 
         # Top frame containing a right/left frame with the chat window and online users display
         self.top_frame = tk.Frame(self, bg='grey')
@@ -107,10 +106,14 @@ class MainWindow(tk.Frame):
         self.chat['yscrollcommand'] = self.chat_scroll.set
 
         self.right_frame = tk.Frame(self.top_frame, bg='grey')
-        self.users_online = tk.Listbox(self.right_frame)
-        self.users_index = []
-        self.users_scroll = tk.Scrollbar(self.right_frame, command=self.users_online.yview)
-        self.users_online['yscrollcommand'] = self.users_scroll.set
+        self.users_frame = tk.Frame(self.right_frame)
+        self.users_canvas = tk.Canvas(self.users_frame, width=130, height=190)
+        self.users_scrollbar = tk.Scrollbar(self.users_frame, orient='vertical', command=self.users_canvas.yview)
+        self.users_scrollframe = tk.Frame(self.users_canvas)
+        self.users_scrollframe.bind('<Configure>',
+                                    lambda e: self.users_canvas.configure(scrollregion=self.users_canvas.bbox('all')))
+        self.users_canvas.create_window((0, 0), window=self.users_scrollframe, anchor='nw')
+        self.users_canvas.configure(yscrollcommand=self.users_scrollbar.set)
 
         self.msg_frame = tk.Frame(self, height=50, padx=5, pady=5, bg='grey')
         self.msg_field = tk.Text(self.msg_frame, height=2, width=10)
@@ -124,8 +127,9 @@ class MainWindow(tk.Frame):
         self.chat_scroll.pack(side='right', fill='y')
 
         self.right_frame.pack(side='right', anchor='ne', padx=5, pady=5)
-        self.users_online.pack(side='left')
-        self.users_scroll.pack(side='right', fill='y')
+        self.users_frame.pack()
+        self.users_canvas.pack(side='left', fill='both')
+        self.users_scrollbar.pack(side='right', fill='y')
 
         self.msg_frame.pack(anchor='sw', side='bottom', fill='x')
         self.msg_field.pack(side='left', fill='x', expand=1)
@@ -140,14 +144,15 @@ class MainWindow(tk.Frame):
             self.chat.insert('end', f'You: {get}' + '\n')
             self.chat.config(state='disabled')
             self.msg_field.delete('1.0', 'end')
-            message = (root.user, get)
-            client_sock.send_bcast(message)
+            client_sock.send(head='bcast', message=(root.user, get))
 
     def handler(self):
         while True:
             data = client_sock.receiver()
             if not data:
-                break
+                continue
+
+            print('received: ', data)
             if data['head'] == 'bcast':
                 message = data['body']
                 self.chat.config(state='normal')
@@ -155,7 +160,20 @@ class MainWindow(tk.Frame):
                 self.chat.config(state='disabled')
 
             elif data['head'] == 'dm':
-                pass
+                def check_instance(user):
+                    for dm in root.dm_instance.items():
+                        if user['body'][1] in dm:
+                            dm[1].display(user['body'])
+                            print('found dm: returning')
+                            return
+
+                    new_dm = DmWindow(root, data['body'][1])
+                    new_dm.display(data['body'])
+                    root.dm_instance[data['body'][1]] = new_dm
+                    print('creating new dm')
+
+                check_instance(data)
+                print('check func: done')
 
             elif data['head'] == 'meta':
                 self.is_online(data['body'])
@@ -163,46 +181,105 @@ class MainWindow(tk.Frame):
     def is_online(self, meta):
         ((key, value),) = meta.items()
         if key == 'online':
-            self.users_index += [user for user in value]
-            for user in value:
-                self.users_online.insert('end', user)
+            for client in value:
+                def make_lambda(name):
+                    return lambda e: self.menu.popup(e.x_root, e.y_root, name)
+
+                if client != root.user:
+                    user_lbl = tk.Label(self.users_scrollframe, text=client)
+                    user_lbl.pack(anchor='w')
+                    user_lbl.bind('<Enter>', lambda event, h=user_lbl: h.configure(bg='lightblue'))
+                    user_lbl.bind('<Leave>', lambda event, h=user_lbl: h.configure(bg='lightgrey'))
+                    user_lbl.bind('<Button-3>', make_lambda(client))
+                    self.online[client] = user_lbl
 
         elif key == 'offline':
-            for user in self.users_index:
-                if value[0] == user:
-                    self.users_online.delete(self.users_index.index(user))
+            online_tmp = self.online.copy()
+            for client in online_tmp:
+                if client == value:
+                    user_lbl = self.online[client]
+                    user_lbl.destroy()
+                    del self.online[client]
 
-    def on_closing(self):
+    @staticmethod
+    def direct_message(user):
+        """ Create a Toplevel window for private messages and add the instance to a dictionary for management."""
+        new_dm = DmWindow(root, user)
+        root.dm_instance[user] = new_dm
+
+    @staticmethod
+    def on_closing():
         if messagebox.askokcancel('Exit', 'Exit program?'):
             client_sock.close()
             root.destroy()
 
 
+class PopupMenu(tk.Menu, MainWindow):
+    def __init__(self):
+        tk.Menu.__init__(self, tearoff=0)
+        self.to_user = None
+        self.add_command(label='Direct Message', command=self.act)
+
+    def act(self):
+        self.direct_message(self.to_user)
+
+    def popup(self, x, y, select):
+        self.to_user = select
+        self.tk_popup(x, y)
+
+
 class DmWindow(tk.Toplevel):
-    def __init__(self, master):
+    def __init__(self, master, to_user):
         tk.Toplevel.__init__(self, master)
+        self.to_user = to_user
+        self.title('Private Message:')
+        self.geometry('300x220')
+        self.protocol('WM_DELETE_WINDOW', self.on_closing)
         self.top_frame = tk.Frame(self, bg='grey', padx=5, pady=5)
-        self.user_label = tk.Label(self.top_frame, text='DM: <User>')
-        self.chat_frame = tk.Frame(self.top_frame)
+        self.user_label = tk.Label(self.top_frame, text=f'DM with: {self.to_user}')
+        self.chat_frame = tk.Frame(self)
         self.chat = tk.Text(self.chat_frame, width=10, height=1, state='disabled')
         self.chat_scroll = tk.Scrollbar(self.chat_frame, command=self.chat.yview)
         self.chat['yscrollcommand'] = self.chat_scroll.set
 
-        self.btm_frame = tk.Frame(self)
-        self.msg_field = tk.Text(self.btm_frame)
-        self.msg_btn = tk.Button(self.btm_frame)
+        self.btm_frame = tk.Frame(self, padx=5, pady=5)
+        self.msg_field = tk.Text(self.btm_frame, width=10, height=2)
+        self.msg_btn = tk.Button(self.btm_frame, padx=5, text='Send', height=2, font='fixedsys 10',
+                                 command=self.message)
 
+        # Positioning
         self.top_frame.pack(anchor='sw')
         self.user_label.pack(side='left')
+
         self.chat_frame.pack(anchor='nw', fill='both', expand=1)
         self.chat.pack(side='left', fill='both', expand=1)
         self.chat_scroll.pack(side='right', fill='y')
+
         self.btm_frame.pack(anchor='sw', fill='x')
         self.msg_field.pack(side='left', fill='x', expand=1)
         self.msg_btn.pack(side='left')
 
+    def display(self, data):
+        self.chat.config(state='normal')
+        self.chat.insert('end', f'{data[1]}: {data[2]}' + '\n')
+        self.chat.config(state='disabled')
+
+    def message(self):
+        get = self.msg_field.get('1.0', 'end-1c')
+        if len(get) > 0:
+            self.chat.config(state='normal')
+            self.chat.insert('end', f'You: {get}' + '\n')
+            self.chat.config(state='disabled')
+            self.msg_field.delete('1.0', 'end')
+            client_sock.send(head='dm', recipient=self.to_user, sender=root.user, message=get)
+
+    def on_closing(self):
+        self.destroy()
+        del root.dm_instance[self.to_user]
+
 
 if __name__ == '__main__':
-    root = Controller()
     client_sock = ClientSock()
+    client_sock.start()
+    root = Controller()
     root.mainloop()

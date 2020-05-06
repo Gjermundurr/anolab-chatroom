@@ -39,9 +39,9 @@ def menu():
             cur.execute(sel_query, get_email)
             ret = cur.fetchone()
             user_query = (
-                "INSERT INTO users (user_id, username, password, salt) VALUES (%s, %s, %s, %s)"
+                "INSERT INTO users (user_id, username, password) VALUES (%s, %s, %s)"
             )
-            user_data = (ret[0], get_username, hashed_password, salt)
+            user_data = (ret[0], get_username, hashed_password)
             cur.execute(user_query, user_data)
 
             db_sock.commit()

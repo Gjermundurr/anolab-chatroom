@@ -27,30 +27,37 @@ class ChatServer:
 
     def authenticate(self, client):
         while True:
-            data = do_decrypt(client.key, client.sock.recv(1024))
+            try:
+                data = do_decrypt(client.key, client.sock.recv(1024))
+            except ConnectionResetError:
+                client.sock.close()
+                break
+
             username = data['body'][0]
             password = data['body'][1]
 
             with self.database_sock.cursor() as cursor:
-                query = "SELECT user_id, username, password, salt FROM users where username=%s"
+                query = "SELECT user_id, username, password FROM users where username=%s"
                 values = (username,)
                 cursor.execute(query, values)
                 retrieve = cursor.fetchone()
             try:
-                ret_id, ret_username, ret_password, ret_salt = retrieve
+                ret_id, ret_username, ret_password = retrieve
                 if bcrypt.checkpw(password.encode('utf-8'), ret_password.encode('utf-8')) and ret_username == username:
-                    print('success')
                     with self.database_sock.cursor() as cursor:
                         query = "SELECT fullname FROM clients where user_id=%s"
                         values = (ret_id,)
                         cursor.execute(query, values)
                         fullname = cursor.fetchone()
 
-                    client.fullname = fullname
+                    client.fullname = fullname[0]
                     client.username = username
                     send = {'head': 'login', 'body': (True, fullname)}
                     client.sock.sendall(do_encrypt(client.key, send))
+                    self.clients.append(client)
                     self.is_online_flag.append(username)
+                    client.state = 1
+                    print('Authenticated: ', client.address)
                     return True
                 else:
                     print('authentication failed')
@@ -58,33 +65,46 @@ class ChatServer:
                     client.sock.sendall(do_encrypt(client.key, send))
                     continue
             except TypeError:
-                print('typeerror')
+                print('authentication failed')
                 send = {'head': 'login', 'body': (False,)}
                 client.sock.sendall(do_encrypt(client.key, send))
                 continue
 
+    def disconnect(self, client):
+        """ client has either sent a socket.shutdown(1) or killed client-process. Either way, the socket is closed
+        and total connections is updated. """
+
+        client.sock.close()
+        send = {'head': 'meta', 'body': {'offline': client.fullname}}
+        for user in self.clients:
+            if user != client:
+                user.sock.sendall(do_encrypt(user.key, send))
+        self.clients.remove(client)
+        print('Disconnected: ', client.address)
+
     def handle(self, client):
         if self.authenticate(client):
-            print('auth: success!')
             try:
                 while True:
-                    raw_data = client.sock.recv(1024)
-                    data = do_decrypt(client.key, raw_data)
+                    data = do_decrypt(client.key, client.sock.recv(1024))
+                    if data is None:
+                        self.disconnect(client)
+                        break
+
+                    print('handle: ', data)
                     if data['head'] == 'bcast':
                         for user in self.clients:
                             if user != client:
-                                user.sock.sendall(raw_data)
+                                user.sock.sendall(do_encrypt(user.key, data))
 
                     elif data['head'] == 'dm':
-                        pass
+                        for client in self.clients:
+                            if client.fullname == data['body'][0]:
+                                client.sock.sendall(do_encrypt(client.key, data))
+                                print(f'sending DM to: {client.fullname}')
 
             except ConnectionResetError:
-                print('Disconnected: ', client)
-                send = {'head': 'meta', 'body': {'offline': client.fullname}}
-                for user in self.clients:
-                    if user != client:
-                        user.sock.sendall(do_encrypt(user.key, send))
-                self.clients.remove(client)
+                self.disconnect(client)
 
     def is_online(self):
         while True:
@@ -92,17 +112,18 @@ class ChatServer:
             clients = self.clients.copy()
             if self.is_online_flag:
                 for user in clients:
-                    if user.state == 1:
-                        online = [client.fullname for client in clients if client.state == 0]
+                    if user.state == 2:
+                        online = [client.fullname for client in clients if client.state == 1]
                         data = {'head': 'meta', 'body': {'online': online}}
                         user.sock.sendall(do_encrypt(user.key, data))
                 self.is_online_flag.clear()
+
             for user in clients:
-                if user.state == 0:
+                if user.state == 1:
                     online = [client.fullname for client in clients]
                     data = {'head': 'meta', 'body': {'online': online}}
                     user.sock.sendall(do_encrypt(user.key, data))
-                    user.state = 1
+                    user.state = 2
 
     def run(self):
         self.server_sock.bind(self.SRV_ADDR)
@@ -115,13 +136,10 @@ class ChatServer:
                 client.sock.close()
                 print('key exchange failed!')
                 continue
-            self.clients.append(client)
-            print(self.clients)
             threading.Thread(target=self.handle, args=(client,), daemon=True).start()
 
 
 class Client:
-
     def __init__(self, chatserver, sock, address):
         self.sock = sock
         self.address = address

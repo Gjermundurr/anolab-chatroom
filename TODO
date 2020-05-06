@@ -1,8 +1,7 @@
 TODO server:
 - direct message feature
-- fix auth func
 - fix handle func
-- fix is_online func
+- fix is_online fund
 
 TODO client:
 - sett opp DM feature
@@ -11,9 +10,7 @@ TODO client:
 
 TODO database:
 - Lag restrikted systembruker for password lookup
-- generer unik salt for hvert passord hash
 
 
 ## Notes:
 
-pw hashing: brukt crypto/bcrypto og 

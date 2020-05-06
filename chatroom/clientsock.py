@@ -49,30 +49,36 @@ class ClientSock:
         encrypted_data = do_encrypt(self.key, credentials)
         self.sock.sendall(encrypted_data)
         data = do_decrypt(self.key, self.sock.recv(1024))
-        print(data)
         if not data:
             return False
         else:
             return data
 
     def receiver(self):
+        """
+        callback function for receiving data from server
+        :return: returns the received and decrypted data
+        """
         try:
             data = do_decrypt(self.key, self.sock.recv(1024))
             return data
         except ConnectionAbortedError:
             print('ConnectionAbortedError')
-            return
-        except ConnectionResetError:
-            print('ConnectionResetError')
-            return
 
-    def send_msg(self, message):
-        if not self.key:
-            print('Error: key not established!')
-            return
-        data = {'head': 'bcast', 'body': message}
+        except ConnectionResetError:
+            print('Lost connection to server!')
+
+    def send(self, **data):
+        if data['head'] == 'bcast':
+            data = {'head': 'bcast', 'body': data['message']}
+
+        elif data['head'] == 'dm':
+            data = {'head': 'dm', 'body': (data['recipient'], data['sender'], data['message'])}
+
         self.sock.sendall(do_encrypt(self.key, data))
+        print('clientsock.send: ', data)
 
     def close(self):
-        self.sock.close()
+        self.sock.shutdown(1)
+        # self.sock.close()
 

@@ -13,6 +13,7 @@ https://python-textbok.readthedocs.io/en/latest/Introduction_to_GUI_Programming.
 https://stackoverflow.com/questions/7546050/switch-between-two-frames-in-tkinter
 https://www.javatpoint.com/python-tkinter-listbox
 http://effbot.org/tkinterbook/tkinter-events-and-bindings.htm
+https://blog.tecladocode.com/tkinter-scrollable-frames/
 
 # similar program
 https://codereview.stackexchange.com/questions/214788/socket-chat-room-made-with-tkinter-python
@@ -23,6 +24,7 @@ https://github.com/Govind9/Non-Blocking-Socket-Chat-Tkinter
 # Misc
 https://docs.python.org/3/howto/sockets.html
 https://www.reddit.com/r/Python/comments/7459mj/tcp_framing_using_sockets_help/
+https://stackoverflow.com/questions/14259072/tkinter-bind-function-with-variable-in-a-loop
 
 # SQL docs
 https://dev.mysql.com/doc/connector-python/en/connector-python-api-mysqlcursor-execute.html

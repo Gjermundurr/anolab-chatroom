@@ -13,7 +13,6 @@ CREATE TABLE users (
 user_id INT NOT NULL,
 username varchar(50) NOT NULL,
 password varchar(255) NOT NULL,
-salt varchar(255) NOT NULL,
 FOREIGN KEY (user_id) REFERENCES clients(user_id)
 );
 

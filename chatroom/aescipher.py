@@ -2,6 +2,8 @@ import pickle
 from base64 import b64encode, b64decode
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
+
+
 # from Crypto.Random import get_random_bytes
 
 
@@ -20,6 +22,7 @@ def do_encrypt(shared_key, plaintext):
     result = pickle.dumps({'iv': iv, 'ciphertext': ct})
     return result
 
+
 # @staticmethod
 def do_decrypt(shared_key, ciphertext):
     try:
@@ -33,5 +36,5 @@ def do_decrypt(shared_key, ciphertext):
         print('ValueError: Incorrect decryption!')
     except KeyError:
         print('keyError: Incorrect decryption!')
-
-
+    except EOFError:
+        return
