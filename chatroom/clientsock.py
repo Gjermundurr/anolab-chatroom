@@ -76,9 +76,7 @@ class ClientSock:
             data = {'head': 'dm', 'body': (data['recipient'], data['sender'], data['message'])}
 
         self.sock.sendall(do_encrypt(self.key, data))
-        print('clientsock.send: ', data)
 
     def close(self):
         self.sock.shutdown(1)
-        # self.sock.close()
 

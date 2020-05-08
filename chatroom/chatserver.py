@@ -98,10 +98,9 @@ class ChatServer:
                                 user.sock.sendall(do_encrypt(user.key, data))
 
                     elif data['head'] == 'dm':
-                        for client in self.clients:
-                            if client.fullname == data['body'][0]:
-                                client.sock.sendall(do_encrypt(client.key, data))
-                                print(f'sending DM to: {client.fullname}')
+                        for user in self.clients:
+                            if user.fullname == data['body'][0]:
+                                user.sock.sendall(do_encrypt(user.key, data))
 
             except ConnectionResetError:
                 self.disconnect(client)
@@ -141,6 +140,12 @@ class ChatServer:
 
 class Client:
     def __init__(self, chatserver, sock, address):
+        """
+
+        :param chatserver:
+        :param sock:
+        :param address:
+        """
         self.sock = sock
         self.address = address
         self.key = self.dh(chatserver.dh_params)
