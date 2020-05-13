@@ -1,16 +1,23 @@
 TODO server:
-- direct message feature
-- fix handle func
-- fix is_online fund
-
+- create logg output file
+- create config file
 TODO client:
-- sett opp DM feature
-- fix online_users feature
-- GUI design; fonts, timestamps, misc
 
 TODO database:
 - Lag restrikted systembruker for password lookup
 
 
-## Notes:
 
+Notes ##
+
+server startup:
+
+-cmd run
+-auth db password
+-establish 2048 bit prime
+-listening on port XXX
+--accepting conn
+--auth conn
+--dc conn
+--fail auth
+--

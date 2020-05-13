@@ -1,11 +1,9 @@
-"""
-Classes for tkinter Graphical User Interface configurations, layout, and GUI operations.
-"""
 import tkinter as tk
 from chatroom.clientsock import ClientSock
 import threading
 from tkinter import messagebox
 from PIL import ImageTk, Image
+from datetime import datetime
 
 
 class Controller(tk.Tk):
@@ -28,6 +26,11 @@ class Controller(tk.Tk):
         self._frame = new_frame
         self._frame.pack(fill='both', expand=1)
 
+    @staticmethod
+    def timestamp():
+        timestamp = datetime.now()
+        return f'{timestamp.hour}:{timestamp.minute}'
+
 
 class LoginWindow(tk.Frame):
     """ Login window:
@@ -47,14 +50,14 @@ class LoginWindow(tk.Frame):
         self.logo_label = tk.Label(self.top_frame, height=150, width=400, image=self.banner, bg='grey')
 
         self.middle_frame = tk.Frame(self, bg='grey', height=150, width=400)
-        self.info = tk.Label(self.middle_frame, bg='grey', font='times 11', text="""Welcome to Company XYZ's personal encrypted messaging service,
-        Do not share this application without permission!
+        self.info = tk.Label(self.middle_frame, bg='grey', font='ubuntu 9 bold', text="""Welcome to Company XYZ's personal encrypted messaging service,
+    please enter below your username and password sent to you by email.
 
-        Please enter below your username and password sent to you by email.
+        N.B Do not share this application without permission!
         """)
-        self.username_label = tk.Label(self.middle_frame, text='Username:', font='fixedsys 13', bg='grey',
+        self.username_label = tk.Label(self.middle_frame, text='Username:', font='ubuntu 10 bold', bg='grey',
                                        fg='white')
-        self.password_label = tk.Label(self.middle_frame, text='Password:', font='fixedsys 13', bg='grey',
+        self.password_label = tk.Label(self.middle_frame, text='Password:', font='ubuntu 10 bold', bg='grey',
                                        fg='white')
 
         self.btm_frame = tk.Frame(self, height=150, width=400, bg='grey')
@@ -105,6 +108,10 @@ class MainWindow(tk.Frame):
         self.chat_scroll = tk.Scrollbar(self.left_frame, command=self.chat.yview)
         self.chat['yscrollcommand'] = self.chat_scroll.set
 
+        self.chat.tag_config('timestamp', foreground='lightgrey', font='fixedsys 12')
+        self.chat.tag_config('message', foreground='black', font='ubuntu 11')
+        self.chat.tag_config('name', foreground='black', font='ubuntu 10 bold')
+
         self.right_frame = tk.Frame(self.top_frame, bg='grey')
         self.users_frame = tk.Frame(self.right_frame)
         self.users_canvas = tk.Canvas(self.users_frame, width=130, height=190)
@@ -114,9 +121,10 @@ class MainWindow(tk.Frame):
                                     lambda e: self.users_canvas.configure(scrollregion=self.users_canvas.bbox('all')))
         self.users_canvas.create_window((0, 0), window=self.users_scrollframe, anchor='nw')
         self.users_canvas.configure(yscrollcommand=self.users_scrollbar.set)
+        self.online_icon = ImageTk.PhotoImage(Image.open('../img/Green-icon-10x10.png'))
 
         self.msg_frame = tk.Frame(self, height=50, padx=5, pady=5, bg='grey')
-        self.msg_field = tk.Text(self.msg_frame, height=2, width=10)
+        self.msg_field = tk.Text(self.msg_frame, height=2, width=10, font='ubuntu 11')
         self.msg_btn = tk.Button(self.msg_frame, text='Send', height=2, font='fixedsys 10', command=self.message)
         self.msg_btn.bind('<Return>', self.message)
 
@@ -141,7 +149,9 @@ class MainWindow(tk.Frame):
         get = self.msg_field.get('1.0', 'end-1c')
         if len(get) > 0:
             self.chat.config(state='normal')
-            self.chat.insert('end', f'You: {get}' + '\n')
+            self.chat.insert('end', f'{root.timestamp()} ', 'timestamp')
+            self.chat.insert('end', 'You:', 'name')
+            self.chat.insert('end', f' {get}' + '\n', 'message')
             self.chat.config(state='disabled')
             self.msg_field.delete('1.0', 'end')
             client_sock.send(head='bcast', message=(root.user, get))
@@ -156,24 +166,24 @@ class MainWindow(tk.Frame):
             if data['head'] == 'bcast':
                 message = data['body']
                 self.chat.config(state='normal')
-                self.chat.insert('end', f'{message[0]}: {message[1]}' + '\n')
+                self.chat.insert('end', f'{root.timestamp()} ', 'timestamp')
+                self.chat.insert('end', f'{message[0]}:', 'name')
+                self.chat.insert('end', f' {message[1]}' + '\n', 'message')
                 self.chat.config(state='disabled')
 
             elif data['head'] == 'dm':
                 def check_instance(user):
+                    # creating definition to not terminate While loop upon returning
                     for dm in root.dm_instance.items():
                         if user['body'][1] in dm:
                             dm[1].display(user['body'])
-                            print('found dm: returning')
                             return
 
                     new_dm = DmWindow(root, data['body'][1])
                     new_dm.display(data['body'])
                     root.dm_instance[data['body'][1]] = new_dm
-                    print('creating new dm')
 
                 check_instance(data)
-                print('check func: done')
 
             elif data['head'] == 'meta':
                 self.is_online(data['body'])
@@ -186,10 +196,11 @@ class MainWindow(tk.Frame):
                     return lambda e: self.menu.popup(e.x_root, e.y_root, name)
 
                 if client != root.user:
-                    user_lbl = tk.Label(self.users_scrollframe, text=client)
+                    user_lbl = tk.Label(self.users_scrollframe, text=f' {client}', image=self.online_icon,
+                                        compound='left')
                     user_lbl.pack(anchor='w')
                     user_lbl.bind('<Enter>', lambda event, h=user_lbl: h.configure(bg='lightblue'))
-                    user_lbl.bind('<Leave>', lambda event, h=user_lbl: h.configure(bg='lightgrey'))
+                    user_lbl.bind('<Leave>', lambda event, h=user_lbl: h.configure(bg='#F0F0F0'))
                     user_lbl.bind('<Button-3>', make_lambda(client))
                     self.online[client] = user_lbl
 
@@ -204,8 +215,15 @@ class MainWindow(tk.Frame):
     @staticmethod
     def direct_message(user):
         """ Create a Toplevel window for private messages and add the instance to a dictionary for management."""
+        for dm in root.dm_instance.items():
+            print(dm)
+            if user in dm:
+                dm[1].lift()
+                return
+        # if the loop does not find an existing DM conversation, a new Toplevel window is created
         new_dm = DmWindow(root, user)
         root.dm_instance[user] = new_dm
+        new_dm.lift()
 
     @staticmethod
     def on_closing():
@@ -232,25 +250,30 @@ class DmWindow(tk.Toplevel):
     def __init__(self, master, to_user):
         tk.Toplevel.__init__(self, master)
         self.to_user = to_user
-        self.title('Private Message:')
+        self.title(f'Private Message: {self.to_user}')
         self.geometry('300x220')
         self.protocol('WM_DELETE_WINDOW', self.on_closing)
-        self.top_frame = tk.Frame(self, bg='grey', padx=5, pady=5)
-        self.user_label = tk.Label(self.top_frame, text=f'DM with: {self.to_user}')
-        self.chat_frame = tk.Frame(self)
+        self.configure(bg='grey')
+        self.chat_frame = tk.Frame(self, padx=5, pady=5, bg='grey')
         self.chat = tk.Text(self.chat_frame, width=10, height=1, state='disabled')
         self.chat_scroll = tk.Scrollbar(self.chat_frame, command=self.chat.yview)
         self.chat['yscrollcommand'] = self.chat_scroll.set
 
-        self.btm_frame = tk.Frame(self, padx=5, pady=5)
-        self.msg_field = tk.Text(self.btm_frame, width=10, height=2)
+        self.chat.tag_config('sysmessage', foreground='lightgrey', font='ubuntu 9 bold')
+        self.chat.tag_config('timestamp', foreground='lightgrey', font='fixedsys 12')
+        self.chat.tag_config('message', foreground='black', font='ubuntu 11')
+        self.chat.tag_config('name', foreground='black', font='ubuntu 10 bold')
+
+        self.chat.configure(state='normal')
+        self.chat.insert('end', ' ' * 15 + '(This is a private conversation)' + '\n', 'sysmessage')
+        self.chat.configure(state='disabled')
+
+        self.btm_frame = tk.Frame(self, padx=5, pady=5, bg='grey')
+        self.msg_field = tk.Text(self.btm_frame, width=10, height=2, font='ubuntu 11')
         self.msg_btn = tk.Button(self.btm_frame, padx=5, text='Send', height=2, font='fixedsys 10',
                                  command=self.message)
 
         # Positioning
-        self.top_frame.pack(anchor='sw')
-        self.user_label.pack(side='left')
-
         self.chat_frame.pack(anchor='nw', fill='both', expand=1)
         self.chat.pack(side='left', fill='both', expand=1)
         self.chat_scroll.pack(side='right', fill='y')
@@ -261,14 +284,18 @@ class DmWindow(tk.Toplevel):
 
     def display(self, data):
         self.chat.config(state='normal')
-        self.chat.insert('end', f'{data[1]}: {data[2]}' + '\n')
+        self.chat.insert('end', f'{root.timestamp()} ', 'timestamp')
+        self.chat.insert('end', f'{data[1]}:', 'name')
+        self.chat.insert('end', f' {data[2]}' + '\n', 'message')
         self.chat.config(state='disabled')
 
     def message(self):
         get = self.msg_field.get('1.0', 'end-1c')
         if len(get) > 0:
             self.chat.config(state='normal')
-            self.chat.insert('end', f'You: {get}' + '\n')
+            self.chat.insert('end', f'{root.timestamp()} ', 'timestamp')
+            self.chat.insert('end', 'You:', 'name')
+            self.chat.insert('end', f' {get}' + '\n', 'message')
             self.chat.config(state='disabled')
             self.msg_field.delete('1.0', 'end')
             client_sock.send(head='dm', recipient=self.to_user, sender=root.user, message=get)

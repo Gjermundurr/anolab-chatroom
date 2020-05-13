@@ -164,16 +164,12 @@ class MainWindow(tk.Frame):
                     for dm in root.dm_instance.items():
                         if user['body'][1] in dm:
                             dm[1].display(user['body'])
-                            print('found dm: returning')
                             return
 
                     new_dm = DmWindow(root, data['body'][1])
                     new_dm.display(data['body'])
                     root.dm_instance[data['body'][1]] = new_dm
-                    print('creating new dm')
-
                 check_instance(data)
-                print('check func: done')
 
             elif data['head'] == 'meta':
                 self.is_online(data['body'])

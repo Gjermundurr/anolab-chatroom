@@ -1,7 +1,10 @@
-string1 = 'this is encoded with utf 8'
-string2 = 'this is a normal string'
-string3 = 'this is decoded with utf8'.encode('utf8')
-print(string1)
-print(string1.encode('utf-8'))
-print(type(string1))
-print(string3.decode('utf8'))
+import tkinter as tk
+from PIL import ImageTk, Image
+root = tk.Tk()
+img_path = r'../img/Green-icon.png'
+online_img = ImageTk.PhotoImage(Image.open(img_path))
+label = tk.Label(root, text=' myname', image=online_img, compound='left')
+
+label.pack()
+
+root.mainloop()
