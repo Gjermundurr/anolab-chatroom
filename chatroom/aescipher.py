@@ -4,15 +4,6 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 
 
-# from Crypto.Random import get_random_bytes
-
-
-# class AESchiper:
-#     def __init__(self, key=None):
-#         self.key = key
-#
-
-# @staticmethod
 def do_encrypt(shared_key, plaintext):
     data = bytes(str(plaintext), 'utf-8')
     cipher = AES.new(shared_key, AES.MODE_CBC)
@@ -23,7 +14,6 @@ def do_encrypt(shared_key, plaintext):
     return result
 
 
-# @staticmethod
 def do_decrypt(shared_key, ciphertext):
     try:
         b64 = pickle.loads(ciphertext)

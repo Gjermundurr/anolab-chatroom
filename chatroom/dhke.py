@@ -1,6 +1,6 @@
 # Source: https://github.com/spec-sec/SecureChat/blob/fd8b242904d3e20713dea7c496752f898d46f1a7/dhke.py#L26
 """
-Diffie-Hellman Key Exchange class for establishing a shared key.
+Diffie-Hellman Key Exchange class for establishing symmetrical key.
 """
 
 from Crypto import Random

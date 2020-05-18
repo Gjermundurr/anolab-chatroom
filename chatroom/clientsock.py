@@ -1,13 +1,13 @@
 import socket
-from chatroom.aescipher import do_decrypt, do_encrypt
-from chatroom.dhke import DH, DH_MSG_SIZE, LEN_PK
+from aescipher import do_decrypt, do_encrypt
+from dhke import DH, DH_MSG_SIZE, LEN_PK
 
 
 class ClientSock:
-
-    def __init__(self):
+    def __init__(self, server_ip:tuple):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect(('127.0.0.1', 60000))
+        self.server_ip = server_ip
+        print(self.server_ip)
         self.key = None
 
     def dh(self):
@@ -21,7 +21,7 @@ class ClientSock:
         :return shared_key: the 256-bit key both the client and
         server now share
         """
-        print("Establishing Encryption Key...")
+
         dh_message = self.sock.recv(DH_MSG_SIZE)
         # Unpack p, g, and server_key from the server's dh message
         p, g, server_key = DH.unpack(dh_message)
@@ -33,17 +33,12 @@ class ClientSock:
         self.sock.sendall(DH.package(public_key, LEN_PK))
         # Calculate shared key
         shared_key = DH.get_shared_key(server_key, private_key, p)
-        print("Shared Key: {}".format(shared_key))
-        # self.cli.add_msg("Encryption Key: {}".format(binascii.hexlify(shared_key).decode("utf-8")))
         return shared_key
 
     def start(self):
-        try:
-            self.key = self.dh()
-        except ConnectionError:
-            print('unable to connect.')
-            return
-
+        self.sock.connect(self.server_ip)
+        self.key = self.dh()
+        
     def login(self, username, password):
         credentials = {'head': 'login', 'body': (username, password)}
         encrypted_data = do_encrypt(self.key, credentials)
@@ -63,10 +58,10 @@ class ClientSock:
             data = do_decrypt(self.key, self.sock.recv(1024))
             return data
         except ConnectionAbortedError:
-            print('ConnectionAbortedError')
+            return 'ConnectionError'
 
         except ConnectionResetError:
-            print('Lost connection to server!')
+            return 'ConnectionError'
 
     def send(self, **data):
         if data['head'] == 'bcast':

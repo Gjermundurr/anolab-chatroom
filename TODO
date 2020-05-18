@@ -1,23 +1,13 @@
 TODO server:
-- create logg output file
-- create config file
+
 TODO client:
+- fix timestamp color
 
 TODO database:
-- Lag restrikted systembruker for password lookup
+
 
 
 
 Notes ##
-
-server startup:
-
--cmd run
--auth db password
--establish 2048 bit prime
--listening on port XXX
---accepting conn
---auth conn
---dc conn
---fail auth
---
+db password: !dnumerjeg@nguah
+pyinstaller: pyinstaller --onefile .\clientapp.py --hidden-import=pkg_resources.py2_warn --windowed

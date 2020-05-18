@@ -6,25 +6,26 @@ import socket
 import pymysql
 import threading
 import time
-import argparse
+import logging
 
 
 class ChatServer:
-    SRV_ADDR = ('127.0.0.1', 60000)     # IP address of listening socket
-    SRV_SOCK_LIMIT = 10                 # Backlog limit
-    DB_ADDR = '127.0.0.1'               # Address of MySql database
-    DB_USER = 'server-admin'            # credentials
-    DB_PWORD = 'password123'            #
-    DB_NAME = 'chatroom'                # Name of database
+    def __init__(self, bind_address, database):
+        #if logfile:
+        #    logging.basicConfig(filename=logfile, level=logging.INFO)
+        #else:
+        #    logging.basicConfig(level=logging.INFO)
 
-    def __init__(self):
-        self.database_sock = pymysql.connect(self.DB_ADDR, self.DB_USER, self.DB_PWORD, self.DB_NAME)
+        self.database_sock = database
+        self.address = bind_address
         self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        print("Generating a {}-bit prime...".format(DH_SIZE))
+        #print("Generating a {}-bit prime...".format(DH_SIZE))
+        logging.info("Generating a {}-bit prime...".format(DH_SIZE))
         self.dh_params = M2DH.gen_params(DH_SIZE, 2)
-        print('done!')
-        self.clients = []           # List of all connected clients
-        self.is_online_flag = []    # Flag used by ChatServer.is_online
+        #print('done!')
+        logging.info('done!')
+        self.clients = []           # List of all connected clients.
+        self.is_online_flag = []    # Flag used by ChatServer.is_online method.
 
     def authenticate(self, client):
         """ Receive client username/password and compare credentials with backend database.
@@ -89,18 +90,18 @@ class ChatServer:
                     self.clients.append(client)
                     self.is_online_flag.append(username)
                     client.state = 1
-                    print('Authenticated: ', client.address)
+                    logging.info(f'Client authenticated: {client.username}@{client.address[0]}')
                     return True
 
                 else:
                     # else statement is executed if the password does not match with the hash stored in the database.
-                    print('authentication failed')
+                    logging.warning(f'Authentication failed: {client.username}@{client.address[0]}')
                     send = {'head': 'login', 'body': (False,)}
                     client.sock.sendall(do_encrypt(client.key, send))
                     continue
 
             except TypeError:
-                print('authentication failed')
+                logging.warning(f'Authentication failed: {client.username}@{client.address[0]}')
                 send = {'head': 'login', 'body': (False,)}
                 client.sock.sendall(do_encrypt(client.key, send))
                 continue
@@ -121,7 +122,7 @@ class ChatServer:
             if user != client:
                 user.sock.sendall(do_encrypt(user.key, send))
         self.clients.remove(client)
-        print('Disconnected: ', client.address)
+        logging.info(f'Client disconnected: {client.username}@{client.address[0]}')
 
     def handle(self, client):
         """ The main thread to each connection. will continuously receive messages from a client and perform an
@@ -201,17 +202,20 @@ class ChatServer:
         class will establish a symmetrical encryption key between the server and client before passing the new client
         object onwards to the authentication step found in the handle.
         """
-        self.server_sock.bind(self.SRV_ADDR)
-        self.server_sock.listen(self.SRV_SOCK_LIMIT)
+        self.server_sock.bind(self.address)
+        logging.info(f'Binding IP {self.address} to socket ...')
+        self.server_sock.listen(25) # 25 = backlog limit
         threading.Thread(target=self.is_online, args=(), daemon=True).start()
+        logging.info('Listening for incomming connections!')
         while True:
             client_sock, client_address = self.server_sock.accept()
+            logging.info(f'Connection established: {client_address[0]}:{client_address[1]}')
             # Create client object and establish encryption key.
             client = Client(self, client_sock, client_address)
             # Close connection if Diffie-Hellman algorithm fails.
             if not client.key:
                 client.sock.close()
-                print('key exchange failed!')
+                logging.warning('Diffie-Hellman key exchange failed, closing connection!')
                 continue
             # Encryption key is established and secure communication can be ensured.
             # Handle method is threaded to allow multiple connections and begins the authentication process.
@@ -254,24 +258,9 @@ class Client:
         try:
             response = self.sock.recv(LEN_PK)
         except ConnectionError:
-            print("Key Exchange with {} failed".format(self.address[0]))
+            logging.error(f"Key Exchange with {self.address[0]} failed")
             return None
         client_key = DH.b2i(response)
         # Calculate shared key with newly received client key
         shared_key = DH.get_shared_key(client_key, a, p)
         return shared_key
-
-
-parser = argparse.ArgumentParser(description='XYZ Messenger. Private encrypted chat room service for company XYZ.')
-parser.add_argument('--password', required=True, help='Enter password for backend database system-user.')
-args = parser.parse_args()
-
-
-def main():
-    print(args)
-
-
-if __name__ == '__main__':
-    main()
-    server = ChatServer()
-    server.start()

@@ -1,13 +1,17 @@
 import tkinter as tk
-from chatroom.clientsock import ClientSock
+from clientsock import ClientSock
 import threading
 from tkinter import messagebox
 from PIL import ImageTk, Image
 from datetime import datetime
+import configparser
 
 
 class Controller(tk.Tk):
-    """ Constructor for GUI application
+    """ Main operator of tkinter frames.
+    The Controller class is the constructor object for the application and includes a method for switching
+    frames to be displayed, in a way like panels of pages of a newspaper. The class includes attributes or
+    methods reachable by any child-object.
     """
 
     def __init__(self):
@@ -16,10 +20,14 @@ class Controller(tk.Tk):
         self.geometry('600x350')
         self.switch_frame(LoginWindow)
         self.configure(bg='grey')
-        self.user = None
-        self.dm_instance = {}
+        self.user = None        # the fullname of the logged in user.
+        self.dm_instance = {}   # Toplevel objects with the name of the recipient as key.
 
     def switch_frame(self, frame_class):
+        """Destroy the current frame and display a new frame object.
+        The frames are complete pages full of different child objects and widgets and work as new pages of
+        a newspaper.
+        """
         new_frame = frame_class(self)
         if self._frame is not None:
             self._frame.destroy()
@@ -28,13 +36,16 @@ class Controller(tk.Tk):
 
     @staticmethod
     def timestamp():
+        # timestamp used by chat in private dm's and main group chat.
         timestamp = datetime.now()
         return f'{timestamp.hour}:{timestamp.minute}'
 
 
 class LoginWindow(tk.Frame):
-    """ Login window:
-    require user to enter valid authentication
+    """ Login window: First page of the application.
+    Display a welcoming page for the user that contins a username & password entry field. The login credentials
+    are authenticated with a backend database operated by the server and either allows the user to continue to
+    the Main page or display an error message in case of unauthorized entry.
     """
 
     def __init__(self, master):
@@ -79,6 +90,10 @@ class LoginWindow(tk.Frame):
         self.login_button.pack(side='left')
 
     def login(self):
+        """ Executed by clicking Login button.
+        The credentials are encrypted and sent to the server for authorization.
+        A return boolean value will tell if the user has recieved authorization or not.
+        """
         username = self.username_entry.get()
         password = self.password_entry.get()
         retrieve = client_sock.login(username, password)
@@ -90,7 +105,9 @@ class LoginWindow(tk.Frame):
 
 
 class MainWindow(tk.Frame):
-    """ Main window of client application
+    """ Main window displaying chatroom.
+    The user has entered a group chat room and can send messages to be broadcasted to all
+    who is connected, or open a new private chat with another user.
     """
 
     def __init__(self, master):
@@ -162,9 +179,12 @@ class MainWindow(tk.Frame):
             data = client_sock.receiver()
             if not data:
                 continue
+            
+            if data == 'ConnectionError':
+                messagebox.showerror('Lost connection to server!', 'You have been disconnected from the chat room, please restart your application.') 
+                break
 
-            print('received: ', data)
-            if data['head'] == 'bcast':
+            elif data['head'] == 'bcast':
                 message = data['body']
                 self.chat.config(state='normal')
                 self.chat.insert('end', f'{root.timestamp()} ', 'timestamp')
@@ -308,7 +328,15 @@ class DmWindow(tk.Toplevel):
 
 
 if __name__ == '__main__':
-    client_sock = ClientSock()
-    client_sock.start()
+    parser = configparser.ConfigParser()
+    parser.read(r'config.txt')
+    ip_server = (parser['default']['host'], int(parser['default']['port']))
     root = Controller()
-    root.mainloop()
+    client_sock = ClientSock(ip_server)
+    try:
+        client_sock.start()
+    except ConnectionRefusedError:
+        messagebox.showerror('Failed to connect.', 'Server is unreachable, please try again later.')
+        root.destroy()
+    else:
+        root.mainloop()
