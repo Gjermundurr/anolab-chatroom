@@ -89,7 +89,7 @@ class LoginWindow(tk.Frame):
         self.password_entry.pack(side='left', padx=10)
         self.login_button.pack(side='left')
 
-    def login(self):
+    def login(self, event=None):
         """ Executed by clicking Login button.
         The credentials are encrypted and sent to the server for authorization.
         A return boolean value will tell if the user has recieved authorization or not.
@@ -125,7 +125,7 @@ class MainWindow(tk.Frame):
         self.chat_scroll = tk.Scrollbar(self.left_frame, command=self.chat.yview)
         self.chat['yscrollcommand'] = self.chat_scroll.set
 
-        self.chat.tag_config('timestamp', foreground='lightgrey', font='fixedsys 12')
+        self.chat.tag_config('timestamp', foreground='steelblue', font='fixedsys 12')
         self.chat.tag_config('message', foreground='black', font='ubuntu 11')
         self.chat.tag_config('name', foreground='black', font='ubuntu 10 bold')
 
@@ -160,7 +160,7 @@ class MainWindow(tk.Frame):
         self.msg_field.pack(side='left', fill='x', expand=1)
         self.msg_btn.pack(padx=10, ipadx=20)
 
-    def message(self):
+    def message(self, event=None):
         """ Get input from text widget and send to backend server """
 
         get = self.msg_field.get('1.0', 'end-1c')
@@ -280,7 +280,7 @@ class DmWindow(tk.Toplevel):
         self.chat['yscrollcommand'] = self.chat_scroll.set
 
         self.chat.tag_config('sysmessage', foreground='lightgrey', font='ubuntu 9 bold')
-        self.chat.tag_config('timestamp', foreground='lightgrey', font='fixedsys 12')
+        self.chat.tag_config('timestamp', foreground='steelblue', font='fixedsys 12')
         self.chat.tag_config('message', foreground='black', font='ubuntu 11')
         self.chat.tag_config('name', foreground='black', font='ubuntu 10 bold')
 

@@ -3,28 +3,30 @@ from base64 import b64encode, b64decode
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 
+# AES-256 CTR cipher suite:
 
-def do_encrypt(shared_key, plaintext):
+def do_encrypt(key, plaintext):
     data = bytes(str(plaintext), 'utf-8')
-    cipher = AES.new(shared_key, AES.MODE_CBC)
-    ct_bytes = cipher.encrypt(pad(data, AES.block_size))
-    iv = b64encode(cipher.iv).decode('utf-8')
+    cipher = AES.new(key, AES.MODE_CTR)
+    ct_bytes = cipher.encrypt(data)
+    nonce = b64encode(cipher.nonce).decode('utf-8')
     ct = b64encode(ct_bytes).decode('utf-8')
-    result = pickle.dumps({'iv': iv, 'ciphertext': ct})
+    result = pickle.dumps({'nonce': nonce, 'ct': ct})
     return result
 
 
-def do_decrypt(shared_key, ciphertext):
+def do_decrypt(key, ciphertext):
     try:
         b64 = pickle.loads(ciphertext)
-        iv = b64decode(b64['iv'])
-        ct = b64decode(b64['ciphertext'])
-        cipher = AES.new(shared_key, AES.MODE_CBC, iv)
-        pt = unpad(cipher.decrypt(ct), AES.block_size)
+        nonce = b64decode(b64['nonce'])
+        ct = b64decode(b64['ct'])
+        cipher = AES.new(key, AES.MODE_CTR, nonce=nonce)
+        pt = cipher.decrypt(ct)
         return eval(pt)
     except ValueError:
-        print('ValueError: Incorrect decryption!')
+        print('Incorrect decryption')
     except KeyError:
-        print('keyError: Incorrect decryption!')
+        print('Incorrect decryption')
     except EOFError:
+        # User has disconnected
         return

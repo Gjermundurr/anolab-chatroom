@@ -11,11 +11,6 @@ import logging
 
 class ChatServer:
     def __init__(self, bind_address, database):
-        #if logfile:
-        #    logging.basicConfig(filename=logfile, level=logging.INFO)
-        #else:
-        #    logging.basicConfig(level=logging.INFO)
-
         self.database_sock = database
         self.address = bind_address
         self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -47,45 +42,35 @@ class ChatServer:
         while True:
             try:
                 data = do_decrypt(client.key, client.sock.recv(1024))
-            except ConnectionResetError:
+                # Unpack received login credentials from the connected client.
+                username = data['body'][0]
+                password = data['body'][1]
+            except (ConnectionResetError, TypeError):
                 client.sock.close()
                 break
-
-            # Unpack received login credentials from the connected client.
-            username = data['body'][0]
-            password = data['body'][1]
 
             with self.database_sock.cursor() as cursor:
                 # A SELECT query is performed to return user_id, username, and hashed password from the database,
                 # based upon the username sent by the connected client. If the received username does not match any
                 # table entries, the query will return a NoneType object which and is handled by the try/except
                 # clause below.
-                query = "SELECT user_id, username, password FROM users where username=%s"
+                query = "SELECT USER_NAME, PASSWORD, FULL_NAME FROM users where USER_NAME=%s"
                 values = (username,)
                 cursor.execute(query, values)
-                retrieve = cursor.fetchone()
-
+                
             try:
                 # Unpacking successful database query results
-                ret_id, ret_username, ret_password = retrieve
+                ret_username, ret_password, ret_fullname = cursor.fetchone()
 
                 # Using bcrypt module to perform a hash comparison with on the password hash from the database and
                 # the submitted password from the client. The client is successfully authenticated if both the
                 # password and username matches the database entry.
                 if bcrypt.checkpw(password.encode('utf-8'), ret_password.encode('utf-8')) and ret_username == username:
-                    with self.database_sock.cursor() as cursor:
-                        # The client has passed authentication and a final query is executed, retrieving the clients
-                        # full name.
-                        query = "SELECT fullname FROM clients where user_id=%s"
-                        values = (ret_id,)
-                        cursor.execute(query, values)
-                        fullname = cursor.fetchone()
-
                     # the class object's attributes are updated accordingly and the connected client recieves his
                     # full name and a boolean signaling the GUI application to enter the MainPage.
-                    client.fullname = fullname[0]
+                    client.fullname = ret_fullname
                     client.username = username
-                    send = {'head': 'login', 'body': (True, fullname)}
+                    send = {'head': 'login', 'body': (True, ret_fullname)}
                     client.sock.sendall(do_encrypt(client.key, send))
                     self.clients.append(client)
                     self.is_online_flag.append(username)
@@ -138,6 +123,7 @@ class ChatServer:
             try:
                 while True:
                     data = do_decrypt(client.key, client.sock.recv(1024))
+
                     if data is None:
                         self.disconnect(client)
                         break
