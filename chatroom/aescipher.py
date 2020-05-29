@@ -4,7 +4,6 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 
 # AES-256 CTR cipher suite:
-
 def do_encrypt(key, plaintext):
     data = bytes(str(plaintext), 'utf-8')
     cipher = AES.new(key, AES.MODE_CTR)

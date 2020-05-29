@@ -119,7 +119,7 @@ class LoginWindow(tk.Frame):
         retrieve = root.client_sock.login(username, password)
         if retrieve['body'][0]:
             root.switch_frame(MainWindow)
-            root.user = retrieve['body'][1][0]
+            root.user = retrieve['body'][1]
         else:
             messagebox.showwarning('Warning', 'Incorrect username/password!')
 

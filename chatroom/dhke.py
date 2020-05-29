@@ -13,7 +13,7 @@ __version__ = "0.1"
 __status__ = "Development"
 
 # Size of prime number in bits (recommended minimum: 2048)
-DH_SIZE = 48 # 2048
+DH_SIZE = 2048
 
 # Length (in bytes) of each variable for public transport
 LEN_PRIME = 1024

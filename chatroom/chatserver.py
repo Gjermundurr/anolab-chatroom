@@ -14,20 +14,18 @@ class ChatServer:
         self.database_sock = database
         self.address = bind_address
         self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        #print("Generating a {}-bit prime...".format(DH_SIZE))
         logging.info("Generating a {}-bit prime...".format(DH_SIZE))
         self.dh_params = M2DH.gen_params(DH_SIZE, 2)
-        #print('done!')
-        logging.info('done!')
+        logging.info('Starting chatroom service!')
         self.clients = []           # List of all connected clients.
         self.is_online_flag = []    # Flag used by ChatServer.is_online method.
 
     def authenticate(self, client):
         """ Receive client username/password and compare credentials with backend database.
-        The method receives login credentials from the connected client and compares the received credentials with the
-        user data stored in the database.
+            The method receives login credentials from the connected client and compares the received credentials with the
+            user data stored in the database.
 
-        The method has three outcomes:
+            The method has three outcomes:
             1. The received username does not match any entries in the chatroom.users table.
                 result: server sends a False boolean back to client application.
 
@@ -41,7 +39,7 @@ class ChatServer:
         """
         while True:
             try:
-                data = do_decrypt(client.key, client.sock.recv(1024))
+                data = do_decrypt(client.key, client.sock.recv(4096))
                 # Unpack received login credentials from the connected client.
                 username = data['body'][0]
                 password = data['body'][1]
@@ -59,7 +57,7 @@ class ChatServer:
                 cursor.execute(query, values)
                 
             try:
-                # Unpacking successful database query results
+                # Unpacking query results
                 ret_username, ret_password, ret_fullname = cursor.fetchone()
 
                 # Using bcrypt module to perform a hash comparison with on the password hash from the database and
@@ -93,12 +91,12 @@ class ChatServer:
 
     def disconnect(self, client):
         """ Remove a client from inventory and close the socket. A client has either executed a socket.shutdown(1)
-        and is waiting for a (FIN - ACK) or the client application has been killed. Either way, the socket is closed
-        and the client's class object is deleted.
+            and is waiting for a (FIN - ACK) or the client application has been killed. Either way, the socket is closed
+            and the client's class object is deleted.
 
-        When a client disconnects, the server sends a special hidden message out to every connection to update the
-        client applications 'online users' side panel. This message is handled by the clients
-        MainWindow.is_online method.
+            When a client disconnects, the server sends a special hidden message out to every connection to update the
+            client applications 'online users' side panel. This message is handled by the clients
+            MainWindow.is_online method.
         """
 
         client.sock.close()
@@ -111,18 +109,18 @@ class ChatServer:
 
     def handle(self, client):
         """ The main thread to each connection. will continuously receive messages from a client and perform an
-        operation based on the header value. if header value reads 'bcast', the message is to be sent to every
-        connected client. if header value reads 'dm', the message is private between two clients and is only sent to
-        the user matching the tuple index[1].
+            operation based on the header value. if header value reads 'bcast', the message is to be sent to every
+            connected client. if header value reads 'dm', the message is private between two clients and is only sent to
+            the user matching the tuple index[1].
 
-        Message examples:
-        data = {'head': 'bcast', 'body': ('ExampleUSer1', 'This is my message to be broadcast!')}
-        data = {'head': 'dm', 'body': ('TO_ExampleUSer1', 'FROM_ExampleUser2', 'Hello, this is a private message.')}
+            Message examples:
+                data = {'head': 'bcast', 'body': ('ExampleUSer1', 'This is my message to be broadcast!')}
+                data = {'head': 'dm', 'body': ('TO_ExampleUSer1', 'FROM_ExampleUser2', 'Hello, this is a private message.')}
         """
         if self.authenticate(client):
             try:
                 while True:
-                    data = do_decrypt(client.key, client.sock.recv(1024))
+                    data = do_decrypt(client.key, client.sock.recv(4096))
 
                     if data is None:
                         self.disconnect(client)
@@ -143,21 +141,21 @@ class ChatServer:
 
     def is_online(self):
         """ Broadcasts hidden messages to all connected clients containing information of who is online.
-        The method is a loop with a two seconds sleep interval and use the Client.state attribute. When a client
-        successfully authenticates, his state is first set to 1. This indicates that the client has no prior data of
-        who else is currently connected to the chat room. The method then creates a list containing the fullname of
-        all currently connected clients and sends it out to the client. The new client is now up-to-date with the
-        rest of the connected clients and can be put in state 2.
+            The method is a loop with a two seconds sleep interval and use the Client.state attribute. When a client
+            successfully authenticates, his state is first set to 1. This indicates that the client has no prior data of
+            who else is currently connected to the chat room. The method then creates a list containing the fullname of
+            all currently connected clients and sends it out to the client. The new client is now up-to-date with the
+            rest of the connected clients and can be put in state 2.
 
-        State two is triggered by a new connection setting the is_online_flag to True and creates a list of the newly
-        connected clients (which would have state 1) and sends it out to all previous connections, allowing them to
-        update their display of online clients.
+            State two is triggered by a new connection setting the is_online_flag to True and creates a list of the newly
+            connected clients (which would have state 1) and sends it out to all previous connections, allowing them to
+            update their display of online clients.
 
-        State 1: Receives list containing fullname of all current connections.
-        State 2: Receives list containing fullname of the new connections.
+            State 1: Receives list containing fullname of all current connections.
+            State 2: Receives list containing fullname of the new connections.
 
-        Example meta message:
-        data = {'head': 'meta', 'body': {'online': ['ExampleName1', ExampleName2', 'ExampleName3']}}
+            Example meta message:
+            data = {'head': 'meta', 'body': {'online': ['ExampleName1', ExampleName2', 'ExampleName3']}}
         """
         while True:
             time.sleep(2)
@@ -182,36 +180,36 @@ class ChatServer:
 
     def start(self):
         """ Starts the chat room server.
-        Binds the IP address to a socket object and starts listening for
-        connections, and executes the is_online method as a daemon thread. The loop accepts a new connection and
-        creates a Client class-object, containing all relevant data to the connection. The initializer of the Client
-        class will establish a symmetrical encryption key between the server and client before passing the new client
-        object onwards to the authentication step found in the handle.
+            Binds the IP address to a socket object and starts listening for
+            connections, and executes the is_online method as a daemon thread. The loop accepts a new connection and
+            creates a Client class-object, containing all relevant data to the connection. The initializer of the Client
+            class will establish a symmetrical encryption key between the server and client before passing the new client
+            object onwards to the authentication step found in the handle.
         """
         self.server_sock.bind(self.address)
         logging.info(f'Binding IP {self.address} to socket ...')
-        self.server_sock.listen(25) # 25 = backlog limit
+        self.server_sock.listen(25) # Limit of concurrent connections per socket.
         threading.Thread(target=self.is_online, args=(), daemon=True).start()
         logging.info('Listening for incomming connections!')
         while True:
             client_sock, client_address = self.server_sock.accept()
-            logging.info(f'Connection established: {client_address[0]}:{client_address[1]}')
-            # Create client object and establish encryption key.
+            logging.info(f'New connection from: None@{client_address[0]}')
+            # Create client object and being Diffie-Hellman Key Exchange.
             client = Client(self, client_sock, client_address)
             # Close connection if Diffie-Hellman algorithm fails.
             if not client.key:
                 client.sock.close()
-                logging.warning('Diffie-Hellman key exchange failed, closing connection!')
+                logging.warning(f'Diffie-Hellman Key Exchange failed for {client.address[0]}, closing connection!')
                 continue
-            # Encryption key is established and secure communication can be ensured.
+            # a Symmetrical encryption key has been exchanged securing all further communication.
             # Handle method is threaded to allow multiple connections and begins the authentication process.
             threading.Thread(target=self.handle, args=(client,), daemon=True).start()
 
 
 class Client:
     def __init__(self, chatserver, sock, address):
-        """ Template for each new connection with attributes containing data related to each unique connection.
-
+        """ Template for each new connection with attributes containing data related to each client.
+        
         :param chatserver: passed to Diffie Hellman algorithm to establish a unique encryption key with each client.
         :param sock: socket object
         :param address: IP and PORT address
@@ -224,8 +222,7 @@ class Client:
         self.fullname = None
 
     def dh(self, dh_params):
-        """
-        Perform Diffie-Hellman Key Exchange with a client.
+        """ Perform Diffie-Hellman Key Exchange with a client.
         :param dh_params: p and g generated by DH
         :return shared_key: shared encryption key for AES
         """

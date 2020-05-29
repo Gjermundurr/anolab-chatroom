@@ -4,10 +4,12 @@ from dhke import DH, DH_MSG_SIZE, LEN_PK
 
 
 class ClientSock:
+    """ class containing operations related to the client applications socket object.
+    
+    """
     def __init__(self, server_ip:tuple):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_ip = server_ip
-        print(self.server_ip)
         self.key = None
 
     def dh(self):
@@ -43,7 +45,7 @@ class ClientSock:
         credentials = {'head': 'login', 'body': (username, password)}
         encrypted_data = do_encrypt(self.key, credentials)
         self.sock.sendall(encrypted_data)
-        data = do_decrypt(self.key, self.sock.recv(1024))
+        data = do_decrypt(self.key, self.sock.recv(4096))
         if not data:
             return False
         else:
@@ -55,7 +57,7 @@ class ClientSock:
         :return: returns the received and decrypted data
         """
         try:
-            data = do_decrypt(self.key, self.sock.recv(1024))
+            data = do_decrypt(self.key, self.sock.recv(4096))
             return data
         except ConnectionAbortedError:
             return 'ConnectionError'
