@@ -14,15 +14,13 @@ class ClientSock:
         self.key = None                 # Symmetrical-key produced by DHKE.
 
     def dh(self):
-        """
-        Perform Diffie-Hellman Key Exchange with the server.
-        p: prime modulus declared by the server
-        g: generator declared by the server
-        server_key: the server's public key
-        private_key: the client's private key
-        public_key: the client's public key
-        :return shared_key: the 256-bit key both the client and
-        server now share
+        """ Perform Diffie-Hellman Key Exchange with the server.
+            p: prime modulus declared by the server
+            g: generator declared by the server
+            server_key: the server's public key
+            private_key: the client's private key
+            public_key: the client's public key
+            :return shared_key: the 256-bit key both the client and server now share
         """
 
         dh_message = self.sock.recv(DH_MSG_SIZE)
@@ -75,11 +73,11 @@ class ClientSock:
             Messages are constructed using nested dictionaries and container types to indicate the purpose and destination of a message.
             Using dictionaries and key/value pairs, every message is constructed with a head & body field. The header indicates the type
             of message and can be either a broadcast for all to receive or a direct message with a single destination.
-            The body field contains the written message and in the case of Dm's the names of the message's recipient and sender.
+            The body field contains the written message and in the case of Dm's includes the names of the message's recipient and sender.
 
             Example messages:
                 Broadcasted message ==  {'head': 'bcast', 'body': TextObject}
-                Direct Message      ==  {'head': 'dm', 'body': ('NameOfDestination, NameOfSource, TextObject)}
+                Direct message      ==  {'head': 'dm', 'body': ('NameOfDestination, NameOfSource, TextObject)}
             
         """
         if data['head'] == 'bcast':
