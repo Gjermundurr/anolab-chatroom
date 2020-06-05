@@ -9,21 +9,21 @@ import configparser
 
 class Controller(tk.Tk):
     """ The main controller of the tkinter class object derived from tkinters constructor class.
-    The Controller class controls the base window of the GUI and includes a method for switching between
-    completed "pages" created by the LoginWindow and MainWindow frame classes.
-    When instanciated, the parser object reads the contents of a config file for the chat room
-    server's IP address and connects to the server, the Diffie-Hellman Key Exchange protocol is then performed
-    establishing a shared secret key allowing all further communication to be encrypted.
+        The Controller class controls the base window of the GUI and includes a method for switching between
+        completed "pages" created by the LoginPage and MainPage frame classes.
+        When instanciated, the parser object reads the contents of a config file for the chat room
+        server's IP address and connects to the server, the Diffie-Hellman Key Exchange protocol is then performed
+        establishing a shared secret key allowing all further communication to be encrypted.
     """
 
     def __init__(self):
         tk.Tk.__init__(self)
         self._frame = None
         self.geometry('600x350')
-        self.switch_frame(LoginWindow)
         self.configure(bg='grey')
-        self.user = None            # the fullname of the logged in user.
-        self.dm_instance = {}       # Dictionary containing Toplevel objects with the name of the recipient as key.
+        self.switch_frame(LoginPage)  # Bind LoginPage to window object
+        self.user = None                # the fullname of the logged in user.
+        self.dm_instance = {}           # Dictionary containing Toplevel objects with the name of the recipient as key.
 
         # Create a configparser object and retrieve the IP address written in the config file and
         # instanciate a socket object inputting the server's IP address.
@@ -36,13 +36,14 @@ class Controller(tk.Tk):
         # displayed and the client application is closed.
         try:
             self.client_sock.start()
-
+            
         except ConnectionRefusedError:
             messagebox.showerror('Failed to connect.', 'Server is unreachable, please try again later.')
             self.destroy()
 
     def switch_frame(self, frame_class):
-        """Destroy the current page/frame and display a new frame object in the controller window."""
+        """ Destroy the current page/frame and bind a new frame object in the controller window.
+        """
         new_frame = frame_class(self)
         if self._frame is not None:
             self._frame.destroy()
@@ -51,15 +52,19 @@ class Controller(tk.Tk):
 
     @staticmethod
     def timestamp():
-        """Method for returning a HH:MM timestamp for the chat rooms messages."""
+        """ Method for returning a HH:MM timestamp displayed together with the chat room's messages.
+        """
         timestamp = datetime.now()
         return f'{timestamp.hour}:{timestamp.minute}'
 
 
-class LoginWindow(tk.Frame):
+class LoginPage(tk.Frame):
     """ Login window: First page of the application.
-    Display a welcome page where the user is prompted with a username & password entry field.
-    Clicking the Login button sends the user's credentials to the server for authentication.
+    When the Login page is reached, the Diffie-Hellman Key Exchange is finished and all data thereafter
+    will be encrypted. A welcome page is displayed to the user with a banner image and two entry fields
+    requesting a username & password. Clicking the Login button sends the user's credentials to the server
+    for authentication. Based on the outcome of the authentication, the user will either be displayed an
+    error message or enter the Main page of the application.
     """
 
     def __init__(self, master):
@@ -118,13 +123,13 @@ class LoginWindow(tk.Frame):
         password = self.password_entry.get()
         retrieve = root.client_sock.login(username, password)
         if retrieve['body'][0]:
-            root.switch_frame(MainWindow)
+            root.switch_frame(MainPage)
             root.user = retrieve['body'][1]
         else:
             messagebox.showwarning('Warning', 'Incorrect username/password!')
 
 
-class MainWindow(tk.Frame):
+class MainPage(tk.Frame):
     """ Client application: Main Window.
     The Main Window gives access to the group chat, allowing the user to receive and send broadcasted messages. 
     The main window includes a large text box for displaying the chat room's messages and a panel on the right-hand
@@ -188,8 +193,8 @@ class MainWindow(tk.Frame):
 
     def message(self, event=None):
         """ Actions performed when clicking Send button.
-        Retrieve the message entered in the message field and insert into local chat box, then send the message
-        to the server marked as a broadcasted message.
+            Retrieve the message entered in the message field and insert into local chat box, then send the message
+            to the server marked as a broadcasted message.
         """
 
         get = self.msg_field.get('1.0', 'end-1c')
@@ -205,17 +210,17 @@ class MainWindow(tk.Frame):
 
     def handler(self):
         """The handler for all receiving communication.
-        The handler is a switchboard for performing the correct action based on the information found in the message's
-        header-field.
+            The handler is a switchboard for performing the correct action based on the information found in the message's
+            header-field.
         
-        All messages follow a head & body structure for identifying message's destination:
-            'bcast' ==  broadcast: This contains a message for the group chat.
-            'dm'    ==  direct message: This is a message belonging to a private conversation.
-            'meta'  ==  meta data: Used by the online-panel to know who is online or offline.
+            All messages follow a head & body structure for identifying message's destination:
+                'bcast' ==  broadcast: This contains a message for the group chat.
+                'dm'    ==  direct message: This is a message belonging to a private conversation.
+                'meta'  ==  meta data: Used by the online-panel to know who is online or offline.
 
-        Example:    Message = {'head':'bcast', 'body': message}  
-                    Message = {'head':'dm', 'body': (destination, message)}  
-                    Message = {'head':'meta', 'body': {'online'/'offline': [user1, user2, user3]}}  
+            Example:    Message = {'head':'bcast', 'body': message}  
+                        Message = {'head':'dm', 'body': (destination, message)}  
+                        Message = {'head':'meta', 'body': {'online'/'offline': [user1, user2, user3]}}  
         """
         while True:
             # Receive a message from the server
@@ -260,7 +265,7 @@ class MainWindow(tk.Frame):
 
     def is_online(self, meta):
         """ Management of online-users panel.
-        creates a label with the name of the user and bind a right-click menu option for creating a private conversation.
+            creates a label with the name of the user and bind a right-click menu option for creating a private conversation.
         """
         ((key, value),) = meta.items()
         if key == 'online':
@@ -290,7 +295,7 @@ class MainWindow(tk.Frame):
     @staticmethod
     def direct_message(user):
         """ Create a Toplevel window for private conversations.
-        Check if an existing Top-level object exists based on the 'user' argument or create a new window if not found.
+            Check if an existing Top-level object exists based on the 'user' argument or create a new window if not found.
         """
         for dm in root.dm_instance.items():
             if user in dm:
@@ -310,7 +315,7 @@ class MainWindow(tk.Frame):
             root.destroy()
 
 
-class PopupMenu(tk.Menu, MainWindow):
+class PopupMenu(tk.Menu, MainPage):
     """ Class for passing a variable through the context-menu to the direct_message method."""
     def __init__(self):
         tk.Menu.__init__(self, tearoff=0)
@@ -327,8 +332,8 @@ class PopupMenu(tk.Menu, MainWindow):
 
 class DmWindow(tk.Toplevel):
     """ Creating Toplevel windows for private conversations between two individuals.
-    The Toplevel is a separate window from the main client application and includes a small chat box
-    and entry field for private conversations.
+        The Toplevel is a separate window from the main client application and includes a small chat box
+        and entry field for private conversations.
     """
     def __init__(self, master, to_user):
         tk.Toplevel.__init__(self, master)

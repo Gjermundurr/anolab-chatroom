@@ -4,9 +4,12 @@ from dhke import DH, DH_MSG_SIZE, LEN_PK
 
 
 class ClientSock:
-    """ The class contains methods and operations used by the client application's socket connection to the server.
-        The class tweaks 
-    
+    """ Class defining spesific operations regarding the client applications socket object.
+        The class is imported by clientapp.py and used appropriately.
+        The class includes methods for establishing a connection to the server and performing the DH-KE.
+        Next, the client uses the Login method to send his encrypted credentials for authentication.
+        The last three methods are for constructing messages following the chat rooms standards, receiving
+        data, and closing the socket connection the correct way.  
     """
     def __init__(self, server_ip:tuple):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -37,7 +40,7 @@ class ClientSock:
         return shared_key
 
     def start(self):
-        """ Connect to the server's IP address and initiates the Diffie-Hellman Key Exchange.
+        """ Connect to the server's IP address followed by the Diffie-Hellman Key Exchange.
         """
         self.sock.connect(self.server_ip)
         self.key = self.dh()
