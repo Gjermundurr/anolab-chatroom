@@ -65,6 +65,7 @@ class ClientSock:
         try:
             data = do_decrypt(self.key, self.sock.recv(4096))
             return data
+            
         except ConnectionAbortedError:
             return 'ConnectionError'
 

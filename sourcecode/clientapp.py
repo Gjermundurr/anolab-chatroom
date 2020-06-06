@@ -114,10 +114,10 @@ class LoginPage(tk.Frame):
 
     def login(self, event=None):
         """ Actions performed when clicking the Login button.
-        The credentials are encrypted and sent to the server for authorization, the server will reply
-        with a message containing a True or False boolean value indicating the outcome of the authentication process.
-        Should the authentication be successfull, the user's real name is also included in the reply message
-        and stored as a variable in the Controller class.
+            The credentials are encrypted and sent to the server for authorization, the server will reply
+            with a message containing a True or False boolean value indicating the outcome of the authentication process.
+            Should the authentication be successfull, the user's real name is also included in the reply message
+            and stored as a variable in the Controller class.
         """
         username = self.username_entry.get()
         password = self.password_entry.get()
@@ -130,11 +130,11 @@ class LoginPage(tk.Frame):
 
 
 class MainPage(tk.Frame):
-    """ Client application: Main Window.
-    The Main Window gives access to the group chat, allowing the user to receive and send broadcasted messages. 
-    The main window includes a large text box for displaying the chat room's messages and a panel on the right-hand
-    side containing the names of all connected users with the feature of right-clicking a name to open a private chat window
-    for communication between two users.
+    """ Client application: Main Page.
+        The Main Window gives access to the group chat, allowing the user to receive and send broadcasted messages. 
+        The main window includes a large text box for displaying the chat room's messages and a panel on the right-hand
+        side containing the names of all connected users with the feature of right-clicking a name to open a private chat window
+        for communication between two users.
     """
 
     def __init__(self, master):
@@ -142,7 +142,7 @@ class MainPage(tk.Frame):
         master.title('XYZ Messenger - Chat room')
         master.protocol('WM_DELETE_WINDOW', self.on_closing)
         threading.Thread(target=self.handler, args=(), daemon=True).start()
-        self.online = {}
+        self.online = {}            # container for referencing online-user labels, ex: 'NameOfUser': Label.user)
         self.menu = PopupMenu()
 
         # The Main Window is divided into a parent top and bottom frame.
@@ -192,9 +192,8 @@ class MainPage(tk.Frame):
         self.msg_btn.pack(padx=10, ipadx=20)
 
     def message(self, event=None):
-        """ Actions performed when clicking Send button.
-            Retrieve the message entered in the message field and insert into local chat box, then send the message
-            to the server marked as a broadcasted message.
+        """ Actions performed when clicking the Send button. Retrieve the message entered in the message field
+            and insert into local chat box, then send the message to the server marked as a broadcasted message.
         """
 
         get = self.msg_field.get('1.0', 'end-1c')
@@ -211,24 +210,24 @@ class MainPage(tk.Frame):
     def handler(self):
         """The handler for all receiving communication.
             The handler is a switchboard for performing the correct action based on the information found in the message's
-            header-field.
-        
-            All messages follow a head & body structure for identifying message's destination:
-                'bcast' ==  broadcast: This contains a message for the group chat.
-                'dm'    ==  direct message: This is a message belonging to a private conversation.
-                'meta'  ==  meta data: Used by the online-panel to know who is online or offline.
+            header-field. All messages follow a head & body structure for identifying message's destination:
+                
+            'bcast' ==  broadcast: This contains a message for the group chat.
+            'dm'    ==  direct message: This is a message belonging to a private conversation.
+            'meta'  ==  meta data: Used by the online-panel to know who is online or offline.
 
             Example:    Message = {'head':'bcast', 'body': message}  
-                        Message = {'head':'dm', 'body': (destination, message)}  
+                        Message = {'head':'dm', 'body': (source, destination, message)}  
                         Message = {'head':'meta', 'body': {'online'/'offline': [user1, user2, user3]}}  
         """
         while True:
             # Receive a message from the server
             data = root.client_sock.receiver()
+            
             if not data:
                 continue
             
-            if data == 'ConnectionError':
+            elif data == 'ConnectionError':
                 # An exception has occured causing the connection with the server to break.
                 messagebox.showerror('Lost connection to server!', 'You have been disconnected from the chat room, please restart your application.') 
                 break
@@ -236,7 +235,6 @@ class MainPage(tk.Frame):
             elif data['head'] == 'bcast':
                 # Broadcasted message.
                 message = data['body']
-                print(message)
                 self.chat.config(state='normal')
                 self.chat.insert('end', f'{root.timestamp()} ', 'timestamp')
                 self.chat.insert('end', f'{message[0]}:', 'name')
@@ -245,18 +243,18 @@ class MainPage(tk.Frame):
                 self.chat.see('end')
 
             elif data['head'] == 'dm':
-                # Private conversation:
-                # Check for an existing Top-level window, if not found, create a new one.
+                # Check for an existing conversation in the dm_instance container, else create one.
                 def check_instance(user):
                     # creating definition to not terminate Handle loop upon returning
                     for dm in root.dm_instance.items():
                         if user['body'][1] in dm:
-                            dm[1].display(user['body'])
-                            return
+                            dm[1].display(user['body'])         # Insert message in existing conversation
+                            return                              # Return to loop
 
-                    new_dm = DmWindow(root, data['body'][1])
-                    new_dm.display(data['body'])
-                    root.dm_instance[data['body'][1]] = new_dm
+                    # No existing conversation was found; a conversation is created.
+                    new_dm = DmWindow(root, data['body'][1])    # Create new Toplevel window
+                    new_dm.display(data['body'])                # insert message in chat box
+                    root.dm_instance[data['body'][1]] = new_dm  # save a reference of the object
                 check_instance(data)
 
             elif data['head'] == 'meta':
@@ -264,10 +262,13 @@ class MainPage(tk.Frame):
                 self.is_online(data['body'])
 
     def is_online(self, meta):
-        """ Management of online-users panel.
-            creates a label with the name of the user and bind a right-click menu option for creating a private conversation.
+        """ Management of the online-users panel. The method receives messages with the 'meta' header and contain the names of other users
+            either going online or offline. The online-users panel contains tkinter Label objects displaying the name of another user in the chat room.
+            The labels are configured to change color when the mouse enters and leaves its hitbox, indicating that the element is 'alive'. Each label
+            is right-clickable which opens a small context-menu giving the option of sending a direct message to a spesific user. 
         """
         ((key, value),) = meta.items()
+        # creates a new label for each name recieved:
         if key == 'online':
             for client in value:
                 def make_lambda(name):
@@ -281,38 +282,42 @@ class MainPage(tk.Frame):
                     user_lbl.bind('<Button-3>', make_lambda(client))                                # Bind right-click to context menu.
                     self.online[client] = user_lbl                                                  # Add reference to dictionary.
 
+        # delete the label matching the received name:
+        # Create a copy of the 'online' dictionary used by the itterator.
+        # Locate the dict value matching the received name, destroy the label
+        # and delete the object from the original dictionary.
         elif key == 'offline':
-            # Create a temporary object of the 'online' dictionary used by the itterator.
-            # Locate the dict value matching the received name, destroy the label
-            # and delete the object from the original dictionary.
             online_tmp = self.online.copy()
             for client in online_tmp:
                 if client == value:
                     user_lbl = self.online[client]
-                    user_lbl.destroy()
-                    del self.online[client]
-
-    @staticmethod
-    def direct_message(user):
-        """ Create a Toplevel window for private conversations.
-            Check if an existing Top-level object exists based on the 'user' argument or create a new window if not found.
-        """
-        for dm in root.dm_instance.items():
-            if user in dm:
-                dm[1].lift()
-                return
-        # if the loop does not find an existing DM conversation, a new Toplevel window is created
-        new_dm = DmWindow(root, user)
-        root.dm_instance[user] = new_dm
-        new_dm.lift()
+                    user_lbl.destroy()          # destroy Label object
+                    del self.online[client]     # delete reference
 
     @staticmethod
     def on_closing():
-        """ Function for controller window's top-right exit button.
-        """
+        """ Method bound to the Controller windows red exit button in top-right corner. """
         if messagebox.askokcancel('Exit', 'Exit application?'):
             root.client_sock.close()
             root.destroy()
+
+    @staticmethod
+    def direct_message(user):
+        """ Create a Toplevel window for private conversations using the DmWindow class. The method first checks for an
+            existing Top-level object matching the 'user' argument, if not, a new DmWindow object is created.
+        """
+        # Search for existing conversation:
+        for dm in root.dm_instance.items():
+            if user in dm:
+                dm[1].lift()                # Lift window to foreground.
+                return
+        
+        # No conversation was found:
+        new_dm = DmWindow(root, user)       # Create Toplevel window.
+        root.dm_instance[user] = new_dm     # Save reference.
+        new_dm.lift()                       # Lift to foreground.
+
+
 
 
 class PopupMenu(tk.Menu, MainPage):
@@ -332,8 +337,8 @@ class PopupMenu(tk.Menu, MainPage):
 
 class DmWindow(tk.Toplevel):
     """ Creating Toplevel windows for private conversations between two individuals.
-        The Toplevel is a separate window from the main client application and includes a small chat box
-        and entry field for private conversations.
+        The Toplevel is a separate window from the main client application and is a minimal version of
+        the MainPage window.
     """
     def __init__(self, master, to_user):
         tk.Toplevel.__init__(self, master)
@@ -361,7 +366,7 @@ class DmWindow(tk.Toplevel):
         self.msg_btn = tk.Button(self.btm_frame, padx=5, text='Send', height=2, font='fixedsys 10',
                                  command=self.message)
 
-        # Positioning
+        # Positioning of elements
         self.chat_frame.pack(anchor='nw', fill='both', expand=1)
         self.chat.pack(side='left', fill='both', expand=1)
         self.chat_scroll.pack(side='right', fill='y')
