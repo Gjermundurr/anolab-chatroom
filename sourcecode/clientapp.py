@@ -296,7 +296,10 @@ class MainPage(tk.Frame):
 
     @staticmethod
     def on_closing():
-        """ Method bound to the Controller windows red exit button in top-right corner. """
+        """ Display a message to the user asking if he wants to exit the application.
+            Method bound to the Controller windows red exit button in top-right corner.
+            Sends a TCP FIN flag to server indicating that the socket can be closed, and destroy the client application.
+        """
         if messagebox.askokcancel('Exit', 'Exit application?'):
             root.client_sock.close()
             root.destroy()
@@ -304,7 +307,7 @@ class MainPage(tk.Frame):
     @staticmethod
     def direct_message(user):
         """ Create a Toplevel window for private conversations using the DmWindow class. The method first checks for an
-            existing Top-level object matching the 'user' argument, if not, a new DmWindow object is created.
+            existing Top-level window matching the 'user' argument, if not, a new DmWindow object is created.
         """
         # Search for existing conversation:
         for dm in root.dm_instance.items():
@@ -321,16 +324,20 @@ class MainPage(tk.Frame):
 
 
 class PopupMenu(tk.Menu, MainPage):
-    """ Class for passing a variable through the context-menu to the direct_message method."""
+    """ Class for passing a variable through the context-menu to the direct_message method.
+        The popup method is bound to a custom lambda function on each online-user Label to
+        allow the Label's name to be retrieved and passed onwards to the direct_message method.
+    """
     def __init__(self):
         tk.Menu.__init__(self, tearoff=0)
-        self.to_user = None # The name of the other end-point of the private conversation.
+        self.to_user = None # The name of the private conversation's recipient.
         self.add_command(label='Direct Message', command=self.act)
 
     def act(self):
         self.direct_message(self.to_user)
 
     def popup(self, x, y, select):
+        # Grab the name written on the selected Label object and bind to 'self.to_user'
         self.to_user = select
         self.tk_popup(x, y)
 
@@ -347,35 +354,40 @@ class DmWindow(tk.Toplevel):
         self.geometry('300x220')
         self.protocol('WM_DELETE_WINDOW', self.on_closing)
         self.configure(bg='grey')
+        
+        # Top frame containing the chat box
         self.chat_frame = tk.Frame(self, padx=5, pady=5, bg='grey')
         self.chat = tk.Text(self.chat_frame, width=10, height=1, state='disabled')
         self.chat_scroll = tk.Scrollbar(self.chat_frame, command=self.chat.yview)
         self.chat['yscrollcommand'] = self.chat_scroll.set
 
-        self.chat.tag_config('sysmessage', foreground='lightgrey', font='ubuntu 9 bold')
-        self.chat.tag_config('timestamp', foreground='steelblue', font='fixedsys 12')
-        self.chat.tag_config('message', foreground='black', font='ubuntu 11')
-        self.chat.tag_config('name', foreground='black', font='ubuntu 10 bold')
-
-        self.chat.configure(state='normal')
-        self.chat.insert('end', ' ' * 15 + '(This is a private conversation)' + '\n', 'sysmessage')
-        self.chat.configure(state='disabled')
-
+        # Bottom frame containing the entry field and send button
         self.btm_frame = tk.Frame(self, padx=5, pady=5, bg='grey')
         self.msg_field = tk.Text(self.btm_frame, width=10, height=2, font='ubuntu 11')
         self.msg_btn = tk.Button(self.btm_frame, padx=5, text='Send', height=2, font='fixedsys 10',
                                  command=self.message)
 
-        # Positioning of elements
+        # Text-format configurations
+        self.chat.tag_config('sysmessage', foreground='lightgrey', font='ubuntu 9 bold')
+        self.chat.tag_config('timestamp', foreground='steelblue', font='fixedsys 12')
+        self.chat.tag_config('message', foreground='black', font='ubuntu 11')
+        self.chat.tag_config('name', foreground='black', font='ubuntu 10 bold')
+
+        # insert informational message at launch
+        self.chat.configure(state='normal')
+        self.chat.insert('end', ' ' * 15 + '(This is a private conversation)' + '\n', 'sysmessage')
+        self.chat.configure(state='disabled')
+
+        # Placement configurations
         self.chat_frame.pack(anchor='nw', fill='both', expand=1)
         self.chat.pack(side='left', fill='both', expand=1)
         self.chat_scroll.pack(side='right', fill='y')
-
         self.btm_frame.pack(anchor='sw', fill='x')
         self.msg_field.pack(side='left', fill='x', expand=1)
         self.msg_btn.pack(side='left')
 
     def display(self, data):
+        # Insert a message to the DmWindow's chat box
         self.chat.config(state='normal')
         self.chat.insert('end', f'{root.timestamp()} ', 'timestamp')
         self.chat.insert('end', f'{data[1]}:', 'name')
@@ -384,6 +396,7 @@ class DmWindow(tk.Toplevel):
         self.chat.see('end')
 
     def message(self):
+        # Send a message 
         get = self.msg_field.get('1.0', 'end-1c')
         if len(get) > 0:
             self.chat.config(state='normal')
@@ -396,6 +409,7 @@ class DmWindow(tk.Toplevel):
             root.client_sock.send(head='dm', recipient=self.to_user, sender=root.user, message=get)
 
     def on_closing(self):
+        # Close Dm window
         self.destroy()
         del root.dm_instance[self.to_user]
 
