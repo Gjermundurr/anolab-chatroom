@@ -60,7 +60,8 @@ class ClientSock:
             return data
 
     def receiver(self):
-        """ Method for receiving data called by a loop in clientapp.py
+        """ Method for receiving and decryting data, called by client's handle method.
+            If connection is dropped the method returns a string which will trigger a message box in the applicaton.
         """
         try:
             data = do_decrypt(self.key, self.sock.recv(4096))
@@ -94,6 +95,6 @@ class ClientSock:
 
     def close(self):
         """ Appropriatly close the TCP connection by signaling to the server that no more data is to be sent
-            and the connection can be closed."""
+            and the connection can be closed.
+        """
         self.sock.shutdown(1)
-

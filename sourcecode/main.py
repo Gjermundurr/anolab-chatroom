@@ -2,18 +2,18 @@ from chatserver import ChatServer
 import argparse
 import pymysql
 import logging
-
+from getpass import getpass
 
 def main():
     parser = argparse.ArgumentParser(description="""XYZ Messenger - Secure chat room service with encrypted communication and user-authentication.""")
 
-    parser.add_argument('-dP', '--dbpassword', metavar='PASSWORD', required=True,
+    parser.add_argument('-P', '--dbpassword', metavar='PASSWORD', required=True,
                         help='Enter password for database system-user.')
 
-    parser.add_argument('-dU', '--dbuser', metavar='USER', default='sys-select',
+    parser.add_argument('-U', '--dbuser', metavar='USER', default='sys-select',
                         help='Database user. (DEFAULT: sys-select)')
 
-    parser.add_argument('-dA', '--dbaddress', metavar='ADDRESS', default='127.0.0.1',
+    parser.add_argument('-A', '--dbaddress', metavar='ADDRESS', default='127.0.0.1',
                         help='IP address of database to connect to. (DEFAULT: localhost)')
 
     parser.add_argument('--database', metavar='NAME', default='chatroom',

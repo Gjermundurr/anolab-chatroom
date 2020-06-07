@@ -301,8 +301,8 @@ class MainPage(tk.Frame):
             Sends a TCP FIN flag to server indicating that the socket can be closed, and destroy the client application.
         """
         if messagebox.askokcancel('Exit', 'Exit application?'):
-            root.client_sock.close()
-            root.destroy()
+            root.client_sock.close()        # send socket.shutdown(1) to server
+            root.destroy()                  # Destroy entire client application
 
     @staticmethod
     def direct_message(user):
@@ -319,8 +319,6 @@ class MainPage(tk.Frame):
         new_dm = DmWindow(root, user)       # Create Toplevel window.
         root.dm_instance[user] = new_dm     # Save reference.
         new_dm.lift()                       # Lift to foreground.
-
-
 
 
 class PopupMenu(tk.Menu, MainPage):
