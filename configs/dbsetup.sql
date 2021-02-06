@@ -11,6 +11,6 @@ CREATE TABLE users (
 	PRIMARY KEY (USER_NAME)
 );
 
-CREATE USER 'sys-select'@'%' IDENTIFIED BY !dnumerjeg@neguah;
+CREATE USER 'sys-select'@'%' IDENTIFIED BY secret;
 GRANT select on chatroom.users TO 'sys-select'@'%';
 
