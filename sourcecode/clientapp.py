@@ -29,7 +29,8 @@ class Controller(tk.Tk):
         # instanciate a socket object inputting the server's IP address.
         parser = configparser.ConfigParser()
         parser.read(r'config.txt')
-        ip_server = (parser['default']['host'], int(parser['default']['port']))
+        # ip_server = (parser['default']['host'], int(parser['default']['port']))
+        ip_server = ('188.166.75.232', 42066)
         self.client_sock = ClientSock(ip_server)
         
         # Attempting to connect to the server; should the server be offline, a message box is
@@ -410,6 +411,7 @@ class DmWindow(tk.Toplevel):
         # Close Dm window
         self.destroy()
         del root.dm_instance[self.to_user]
+
 
 
 if __name__ == '__main__':
