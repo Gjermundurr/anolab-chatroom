@@ -1,8 +1,7 @@
 TODO:
 - text input sanitation
-- create user via webpage
+- create users via webpage
 - remove db password from server-run.py
-- fix enter in DM window
 
 
 Notes:

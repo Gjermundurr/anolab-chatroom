@@ -35,7 +35,7 @@ class Controller(tk.Tk):
     def connect_to_server(self):
         try:
             self.client_sock.start()
-            self.statsbar.config(bg='lightgreen')
+            self.statusbar.config(bg='lightgreen')
             self.statusinfo.set(f'Server: {self.server_address[0]} Port: {self.server_address[1]} Status: Connected')
             
         except ConnectionRefusedError:
@@ -156,7 +156,7 @@ class MainPage(tk.Frame):
 
     def __init__(self, master):
         tk.Frame.__init__(self, master)
-        master.title('AnoLab06 - Chatroom')
+        master.title('AnoLab06: Chatroom')
         master.protocol('WM_DELETE_WINDOW', self.on_closing)
         threading.Thread(target=self.handler, args=(), daemon=True).start()
         self.online = {}            # container for referencing online-user labels, ex: 'NameOfUser': Label.user)
@@ -192,7 +192,6 @@ class MainPage(tk.Frame):
         self.msg_frame = tk.Frame(self, height=50, padx=5, pady=5, bg='grey')
         self.msg_field = tk.Text(self.msg_frame, height=2, width=10, font='ubuntu 11')
         self.msg_btn = tk.Button(self.msg_frame, text='Send', height=2, font='fixedsys 10', command=self.message)
-        #self.msg_btn.bind('<Return>', self.message)
         master.bind('<Return>', self.message)
 
         # Placement configurations of all frame objects using the Pack() manager.
@@ -385,6 +384,7 @@ class DmWindow(tk.Toplevel):
         self.msg_field = tk.Text(self.btm_frame, width=10, height=2, font='ubuntu 11')
         self.msg_btn = tk.Button(self.btm_frame, padx=5, text='Send', height=2, font='fixedsys 10',
                                  command=self.message)
+        self.bind('<Return>', self.message)
 
         # Text-format configurations
         self.chat.tag_config('sysmessage', foreground='lightgrey', font='ubuntu 9 bold')
@@ -405,6 +405,8 @@ class DmWindow(tk.Toplevel):
         self.msg_field.pack(side='left', fill='x', expand=1)
         self.msg_btn.pack(side='left')
 
+        
+
     def display(self, data):
         # Insert a message to the DmWindow's chat box
         self.chat.config(state='normal')
@@ -414,7 +416,7 @@ class DmWindow(tk.Toplevel):
         self.chat.config(state='disabled')
         self.chat.see('end')
 
-    def message(self):
+    def message(self, event=None):
         # Send a message 
         get = self.msg_field.get('1.0', 'end-1c')
         if len(get) > 0:
