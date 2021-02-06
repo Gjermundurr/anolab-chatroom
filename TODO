@@ -1,13 +1,9 @@
-TODO server:
-
-TODO client:
-- fix timestamp color
-
-TODO database:
-
+TODO:
+- text input sanitation
+- create user via webpage
+- remove db password from server-run.py
+- fix enter in DM window
 
 
-
-Notes ##
-db password: !dnumerjeg@nguah
+Notes:
 pyinstaller: pyinstaller --onefile .\clientapp.py --hidden-import=pkg_resources.py2_warn --windowed

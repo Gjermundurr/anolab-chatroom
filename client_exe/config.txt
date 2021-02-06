@@ -1,5 +1,0 @@
-# Configuration file for client application.
-# host, port = IPv4 address of chat room server.
-[default]
-host = 127.0.0.1
-port = 60000
