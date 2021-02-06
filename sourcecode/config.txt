@@ -1,6 +1,0 @@
-# Configuration file for client application.
-# host, port = IPv4 address of chat room server.
-
-[default]
-host = 188.166.75.232
-port = 42066
