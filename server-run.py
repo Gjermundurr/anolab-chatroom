@@ -1,23 +1,30 @@
+#!/usr/bin/env python3
 from modules.chatserver import ChatServer
+from configparser import ConfigParser
 import pymysql
 import logging 
 
-log_file = '/var/log/chatroom/server.log'
 
-if open(log_file, 'r'):
-    logging.basicConfig(filename=log_file, level=logging.INFO, format='%(levelname)s:server:%(message)s')
+# read config file
+config_object = ConfigParser()
+config_object.read('config.ini')
+databaseconf = config_object['DATABASECONFIG']
+serverconf = config_object['SERVERCONFIG']
+
+if open(serverconf['log_file'], 'r'):
+    logging.basicConfig(filename=serverconf['log_file'], level=logging.INFO, format='%(asctime)s %(levelname)-8s %(message)s')
 
 else:
-    open(log_file, 'x')
-    logging.basicConfig(filename=log_file, level=logging.INFO, format='%(levelname)s:server:%(message)s')
+    open(serverconf['log_file'], 'x')
+    logging.basicConfig(filename=serverconf['log_file'], level=logging.INFO, format='%(asctime)s %(levelname)-8s %(message)s')
 
 
-
-database_sock = pymysql.connect('127.0.0.1', 'sys-select', '420!Du!kommer!aldri!til!a!klare!det', 'chatroom')
+database_sock = pymysql.connect(databaseconf['address'], databaseconf['user'], databaseconf['password'], databaseconf['dbname'])
 print('Database: Connected!')
-server = ChatServer(('188.166.75.232', 42066), database_sock)
+logging.info('Database connected!')
+server = ChatServer((serverconf['address'], serverconf['port']), database_sock)
 try:
     server.start()
 
 except KeyboardInterrupt:
-    print('Stopping server.')
+    logging.info('Stopping server.\n')

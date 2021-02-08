@@ -81,19 +81,18 @@ class ChatServer:
                     self.clients.append(client)
                     self.is_online_flag.append(username)
                     client.state = 1
-                    logging.info(f'info - Client authenticated: {client.username}@{client.address[0]}')
-                    logging.warning(f'warn - Client authenticated: {client.username}@{client.address[0]}')
+                    logging.info(f'Client authenticated: {client.username}@{client.address[0]}')
                     return True
 
                 else:
                     # else statement is executed if the password does not match with the hash stored in the database.
-                    logging.warning(f'Authentication failed: {client.username}@{client.address[0]}')
+                    logging.warning(f'Authentication failed - wrong username/password: {username}@{client.address[0]}')
                     send = {'head': 'login', 'body': (False,)}
                     client.sock.sendall(do_encrypt(client.key, send))
                     continue
 
             except TypeError:
-                logging.warning(f'Authentication failed: {client.username}@{client.address[0]}')
+                logging.warning(f'Authentication failed - no user found: {username}@{client.address[0]}')
                 send = {'head': 'login', 'body': (False,)}
                 client.sock.sendall(do_encrypt(client.key, send))
                 continue
@@ -195,22 +194,22 @@ class ChatServer:
             Diffie-Hellman Key exchange. After this, the connection is separated from the main-thread, allowing the
             loop to repeat for the next connection.
         """
-        logging.info('Starting the chat room server!')
+        logging.info('### Starting AnoLab06 chatroom service! ###')
         self.server_sock.bind(self.address)
-        logging.info(f'Binding IP {self.address} to socket ...')
+        logging.info(f'Binding IP: {self.address} to socket ...')
         self.server_sock.listen(25) # Limit of concurrent connections per socket.
         threading.Thread(target=self.is_online, args=(), daemon=True).start()
-        logging.info('Listening for incomming connections!')
+        logging.info('Chatroom is Online - listening for incomming connections ...')
         try:
             while True:
                 client_sock, client_address = self.server_sock.accept()
-                logging.info(f'New connection from: None@{client_address[0]}')
                 # Create client object and being Diffie-Hellman Key Exchange.
                 client = Client(self, client_sock, client_address)
+                logging.info(f'New connection from: None@{client_address[0]}')
                 # Close connection if Diffie-Hellman algorithm fails.
                 if not client.key:
                     client.sock.close()
-                    logging.warning(f'Diffie-Hellman Key Exchange failed for {client.address[0]}, closing connection!')
+                    logging.warning(f'Diffie-Hellman Key Exchange failed for {client.address[0]}: closing connection')
                     continue
                 # a Symmetrical encryption key has been exchanged securing all further communication.
                 # Handle method is threaded to allow multiple connections and begins the authentication process.

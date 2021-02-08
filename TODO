@@ -1,8 +1,9 @@
 TODO:
 - text input sanitation
 - create users via webpage
-- remove db password from server-run.py
+- fix systemctl server.service
+
 
 
 Notes:
-pyinstaller: pyinstaller --onefile .\clientapp.py --hidden-import=pkg_resources.py2_warn --windowed
+pyinstaller: pyinstaller --onefile .\clientapp.py --windowed
