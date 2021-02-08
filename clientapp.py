@@ -19,7 +19,7 @@ class Controller(tk.Tk):
         tk.Tk.__init__(self)
         self._frame = None
         self.geometry('600x350')
-        #self.configure(bg='grey')
+        self.iconbitmap('img/client-icon-trans.ico')    # Set window icon 
         self.server_address = ('188.166.75.232',42066)
         self.switch_frame(LoginPage)  # Bind LoginPage to window object
         self.user = None                # the fullname of the logged in user.
@@ -86,7 +86,7 @@ class LoginPage(tk.Frame):
         # The Login page is divided into three parent frames (top_frame, middle_frame, btm_frame).
         # Top frame contains the banner logo.
         self.top_frame = tk.Frame(self)
-        self.img = Image.open('img/newlogo.png')
+        self.img = Image.open('img/login-banner.png')
         self.img100x320 = self.img.resize((370, 120), Image.ANTIALIAS)
         self.banner = ImageTk.PhotoImage(self.img100x320)
         self.logo_label = tk.Label(self.top_frame, height=150, width=400, image=self.banner, bg='grey')
@@ -178,6 +178,7 @@ class MainPage(tk.Frame):
 
         # Right-frame widgets
         self.right_frame = tk.Frame(self.top_frame, bg='grey')
+        self.info_label = tk.Label(self.right_frame, text='Online users:')
         self.users_frame = tk.Frame(self.right_frame)
         self.users_canvas = tk.Canvas(self.users_frame, width=130, height=190)
         self.users_scrollbar = tk.Scrollbar(self.users_frame, orient='vertical', command=self.users_canvas.yview)
@@ -200,7 +201,9 @@ class MainPage(tk.Frame):
         self.chat.pack(side='left', expand=1, fill='both')
         self.chat_scroll.pack(side='right', fill='y')
         self.right_frame.pack(side='right', anchor='ne', padx=5, pady=5)
+        self.info_label.pack(fill='x')
         self.users_frame.pack()
+        
         self.users_canvas.pack(side='left', fill='both')
         self.users_scrollbar.pack(side='right', fill='y')
 
@@ -246,9 +249,9 @@ class MainPage(tk.Frame):
             
             elif data == 'ConnectionError':
                 # An exception has occured causing the connection with the server to break.
-                messagebox.showerror('Lost connection to server!', 'You have been disconnected from the chat room, please restart your application.')
-                root.statsbar.config(bg='tomato3')
+                root.statusbar.config(bg='tomato3')
                 root.statusinfo.set(f'Server: {self.server_address[0]} Port: {self.server_address[1]} Status: Disconnected')
+                messagebox.showerror('Lost connection to server!', 'You have been disconnected from the chat room, please restart your application.')
                 break
 
             elif data['head'] == 'bcast':

@@ -1,9 +1,10 @@
 TODO:
 - text input sanitation
 - create users via webpage
-- fix systemctl server.service
-
 
 
 Notes:
-pyinstaller: pyinstaller --onefile .\clientapp.py --windowed
+python -m PyInstaller --onedir --windowed --icon=img/client-icon-trans.ico .\clientapp.py
+mv img into dist/
+
+http://unafaltadecomprension.blogspot.com/2014/07/pyinstaller-separating-executable-from.html
