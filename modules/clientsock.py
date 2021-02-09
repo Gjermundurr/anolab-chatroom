@@ -85,13 +85,17 @@ class ClientSock:
                 Direct message      ==  {'head': 'dm', 'body': ('NameOfDestination, NameOfSource, TextObject)}
             
         """
-        if data['head'] == 'bcast':
-            data = {'head': 'bcast', 'body': data['message']}
+        try:
+            if data['head'] == 'bcast':
+                data = {'head': 'bcast', 'body': data['message']}
 
-        elif data['head'] == 'dm':
-            data = {'head': 'dm', 'body': (data['recipient'], data['sender'], data['message'])}
+            elif data['head'] == 'dm':
+                data = {'head': 'dm', 'body': (data['recipient'], data['sender'], data['message'])}
 
-        self.sock.sendall(do_encrypt(self.key, data))
+            self.sock.sendall(do_encrypt(self.key, data))
+        
+        except ConnectionAbortedError:
+            return # server has disconneced or stopped
 
     def close(self):
         """ Appropriatly close the TCP connection by signaling to the server that no more data is to be sent

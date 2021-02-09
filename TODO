@@ -1,6 +1,12 @@
 TODO:
 - text input sanitation
 - create users via webpage
+- buy code signing certificate certum
+- rework database users design
+- implement store procedures (check user, add user)
+
+
+Username + email + password = done
 
 
 Notes:

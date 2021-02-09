@@ -60,13 +60,13 @@ class ChatServer:
                 # based upon the username sent by the connected client. If the received username does not match any
                 # table entries, the query will return a NoneType object which and is handled by the try/except
                 # clause below.
-                query = "SELECT USER_NAME, PASSWORD, FULL_NAME FROM users where USER_NAME=%s"
+                query = "SELECT USER_NAME, PASSWORD FROM users where USER_NAME=%s"
                 values = (username,)
                 cursor.execute(query, values)
                 
             try:
                 # Unpacking query results
-                ret_username, ret_password, ret_fullname = cursor.fetchone()
+                ret_username, ret_password = cursor.fetchone()
 
                 # Using bcrypt module to perform a hash comparison with on the password hash from the database and
                 # the submitted password from the client. The client is successfully authenticated if both the
@@ -74,9 +74,9 @@ class ChatServer:
                 if bcrypt.checkpw(password.encode('utf-8'), ret_password.encode('utf-8')) and ret_username == username:
                     # the class object's attributes are updated accordingly and the connected client recieves his
                     # full name and a boolean signaling the GUI application to enter the MainPage.
-                    client.fullname = ret_fullname
+                    client.fullname = ret_username # should be removed but too lazy atm
                     client.username = username
-                    send = {'head': 'login', 'body': (True, ret_fullname)}
+                    send = {'head': 'login', 'body': (True, ret_username)}
                     client.sock.sendall(do_encrypt(client.key, send))
                     self.clients.append(client)
                     self.is_online_flag.append(username)
@@ -108,7 +108,7 @@ class ChatServer:
         """
 
         client.sock.close()
-        send = {'head': 'meta', 'body': {'offline': client.fullname}}
+        send = {'head': 'meta', 'body': {'offline': client.username}}
         for user in self.clients:
             if user != client:
                 user.sock.sendall(do_encrypt(user.key, send))
@@ -173,7 +173,7 @@ class ChatServer:
             if self.is_online_flag:
                 for user in clients:
                     if user.state == 2:
-                        online = [client.fullname for client in clients if client.state == 1]
+                        online = [client.username for client in clients if client.state == 1]
                         data = {'head': 'meta', 'body': {'online': online}}
                         user.sock.sendall(do_encrypt(user.key, data))
                 self.is_online_flag.clear()
@@ -181,7 +181,7 @@ class ChatServer:
             # Sends out a list containing fullname of all connected clients, to the new client.
             for user in clients:
                 if user.state == 1:
-                    online = [client.fullname for client in clients]
+                    online = [client.username for client in clients]
                     data = {'head': 'meta', 'body': {'online': online}}
                     user.sock.sendall(do_encrypt(user.key, data))
                     user.state = 2
@@ -233,7 +233,7 @@ class Client:
         self.key = self.dh(chatserver.dh_params)
         self.state = 0                  # Value used by is_online method.
         self.username = None            # Login username of client
-        self.fullname = None            # The clients full name
+        self.fullname = None            # The clients full name note: to be removed when im bored enough to do it
 
     def dh(self, dh_params):
         """ Perform Diffie-Hellman Key Exchange with client.

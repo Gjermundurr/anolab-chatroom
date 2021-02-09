@@ -22,7 +22,7 @@ else:
 database_sock = pymysql.connect(databaseconf['address'], databaseconf['user'], databaseconf['password'], databaseconf['dbname'])
 print('Database: Connected!')
 logging.info('Database connected!')
-server = ChatServer((serverconf['address'], serverconf['port']), database_sock)
+server = ChatServer((serverconf['address'], int(serverconf['port'])), database_sock)
 try:
     server.start()
 
