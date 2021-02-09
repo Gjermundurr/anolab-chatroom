@@ -34,7 +34,6 @@ def menu():
         if int(select) == 1:
             print('Adding new user to database:')               
             get_email = input('Enter users email address:')             # Get email address
-            get_fullname = input('Enter full name: ')                   # Get full name
             print('~~ Create username and password ~~')
             get_username = input('Enter username: ')                    # Set username
             get_password = getpass(prompt='Enter a strong password: ')  # Set password
@@ -45,9 +44,9 @@ def menu():
             cur = db_sock.cursor()
             # Database query
             query = (
-                "INSERT INTO users (USER_NAME, PASSWORD, FULL_NAME, EMAIL_ADDRESS) VALUES (%s, %s, %s, %s)"
+                "INSERT INTO users (USER_NAME, PASSWORD, EMAIL_ADDRESS) VALUES (%s, %s, %s)"
                      )
-            data = (get_username, hashed_password, get_fullname, get_email)
+            data = (get_username, hashed_password, get_email)
             cur.execute(query, data)
             
             # save changes to database
